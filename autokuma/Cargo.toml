@@ -42,6 +42,7 @@ itertools = { workspace = true }
 log = { workspace = true }
 owo-colors = { workspace = true }
 regex = { workspace = true }
+reqwest = { workspace = true }
 rust_socketio = { workspace = true }
 seq-macro = { workspace = true }
 serde = { workspace = true }
