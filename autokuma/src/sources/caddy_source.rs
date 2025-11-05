@@ -82,6 +82,7 @@ fn extract_hosts(config: &CaddyConfig) -> Vec<String> {
                                     if let Some(host_list) = &matcher.host {
                                         for host in host_list {
                                             // Remove wildcards and clean up host names
+                                            // Caddy uses *.domain.com format for wildcard hosts
                                             let clean_host = host.trim_start_matches("*.").to_string();
                                             if !clean_host.is_empty() {
                                                 hosts.insert(clean_host);
@@ -152,7 +153,8 @@ impl Source for CaddySource {
                 None => host.clone(),
             };
 
-            let id = format!("caddy-{}", host.replace(".", "-"));
+            // Generate a unique ID - use the host as-is since AutoKuma IDs support dots
+            let id = format!("caddy/{}", host);
 
             let value = json!({
                 "type": "http",
