@@ -118,6 +118,7 @@ services:
       # AUTOKUMA__CADDY__URL: "http://caddy:2019/config/"
       # AUTOKUMA__CADDY__USE_HTTPS: "true"
       # AUTOKUMA__CADDY__MONITOR_NAME_PREFIX: "Caddy - "
+      # AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"
       
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -161,6 +162,7 @@ AutoKuma can be configured using the following environment variables/config keys
 | `AUTOKUMA__CADDY__URL`             | `caddy.url`             | The URL of the Caddy config API endpoint (Defaults to http://localhost:2019/config/)                                     |
 | `AUTOKUMA__CADDY__USE_HTTPS`       | `caddy.use_https`       | Whether to use HTTPS for the monitors generated from Caddy hosts (Defaults to true)                                      |
 | `AUTOKUMA__CADDY__MONITOR_NAME_PREFIX` | `caddy.monitor_name_prefix` | Optional prefix to add to monitor names for Caddy hosts                                                          |
+| `AUTOKUMA__CADDY__PARENT_NAME`     | `caddy.parent_name`     | Optional parent group name to organize all Caddy monitors under a group/folder                                           |
 
 AutoKuma will read configuration from a file named `autokuma.{toml,yaml,json}` in the current directory and in the following locations:
 
@@ -397,6 +399,15 @@ In case of static Monitors the id is determined by the filename (without the ext
 ### Caddy Integration 🔷
 AutoKuma can automatically create monitors for all hosts defined in your Caddy2 configuration by fetching the config from Caddy's admin API.
 
+#### How It Works
+1. AutoKuma polls the Caddy admin API endpoint (default: `http://localhost:2019/config/`)
+2. Parses the JSON configuration structure to extract hosts from `apps.http.servers.*.routes.*.match.*.host`
+3. Strips wildcard prefixes (e.g., `*.example.com` becomes `example.com`)
+4. Creates HTTP/HTTPS monitors for each discovered host
+5. Monitors are automatically updated on each sync interval
+
+#### Configuration
+
 To enable Caddy integration, configure the following environment variables:
 
 ```yaml
@@ -405,6 +416,7 @@ environment:
   AUTOKUMA__CADDY__URL: "http://caddy:2019/config/"  # URL to Caddy config API
   AUTOKUMA__CADDY__USE_HTTPS: "true"  # Whether to create HTTPS monitors (default: true)
   AUTOKUMA__CADDY__MONITOR_NAME_PREFIX: "Caddy - "  # Optional prefix for monitor names
+  AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"  # Optional: organize monitors in a group
 ```
 
 Or in a TOML config file:
@@ -415,7 +427,29 @@ enabled = true
 url = "http://caddy:2019/config/"
 use_https = true
 monitor_name_prefix = "Caddy - "
+parent_name = "caddy-group"
 ```
+
+#### Organizing Monitors in a Group
+
+To automatically organize all Caddy monitors under a group/folder, you need to:
+
+1. Create a group in your static monitors or via labels (you can name the file `caddy-group.json`):
+```json
+{
+    "name": "Caddy Services",
+    "type": "group"
+}
+```
+
+2. Configure the `parent_name` to match the group's autokuma ID:
+```yaml
+AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"
+```
+
+All monitors discovered from Caddy will now appear under the "Caddy Services" group in Uptime Kuma.
+
+#### Features
 
 When enabled, AutoKuma will:
 - Fetch the Caddy configuration JSON from the admin API
@@ -423,6 +457,7 @@ When enabled, AutoKuma will:
 - Automatically create HTTP/HTTPS monitors for each host
 - Handle wildcard hosts by stripping the `*.` prefix
 - Update monitors when hosts are added or removed from Caddy
+- Optionally organize all monitors under a specified group
 
 The monitors are automatically created with sensible defaults (60s interval, 3 retries) and will be managed by AutoKuma just like any other monitor source.
 

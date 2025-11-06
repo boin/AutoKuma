@@ -156,7 +156,7 @@ impl Source for CaddySource {
             // Generate a unique ID - use the host as-is since AutoKuma IDs support dots
             let id = format!("caddy/{}", host);
 
-            let value = json!({
+            let mut value = json!({
                 "type": "http",
                 "name": monitor_name,
                 "url": url,
@@ -164,6 +164,11 @@ impl Source for CaddySource {
                 "retryInterval": 60,
                 "maxretries": 3,
             });
+
+            // Add parent_name if configured to organize monitors into a group
+            if let Some(parent_name) = &self.state.config.caddy.parent_name {
+                value["parent_name"] = json!(parent_name);
+            }
 
             let context = tera::Context::from_value(json!({
                 "host": host,
@@ -238,5 +243,21 @@ mod tests {
         let config = CaddyConfig { apps: None };
         let hosts = extract_hosts(&config);
         assert_eq!(hosts.len(), 0);
+    }
+
+    #[test]
+    fn test_parent_name_in_config() {
+        // This test verifies that parent_name configuration exists
+        use crate::config::CaddyConfig;
+        
+        let config = CaddyConfig {
+            enabled: true,
+            url: "http://localhost:2019/config/".to_string(),
+            use_https: true,
+            monitor_name_prefix: Some("Test - ".to_string()),
+            parent_name: Some("test-group".to_string()),
+        };
+        
+        assert_eq!(config.parent_name, Some("test-group".to_string()));
     }
 }

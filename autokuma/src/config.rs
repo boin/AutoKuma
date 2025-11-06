@@ -95,6 +95,10 @@ pub struct CaddyConfig {
     /// Optional prefix to add to monitor names.
     #[serde_inline_default(None)]
     pub monitor_name_prefix: Option<String>,
+
+    /// Optional parent group name to organize all Caddy monitors under.
+    #[serde_inline_default(None)]
+    pub parent_name: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
