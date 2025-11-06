@@ -138,6 +138,10 @@ impl Source for CaddySource {
         let hosts = extract_hosts(&config);
         log::info!("Found {} hosts in Caddy config", hosts.len());
 
+        if let Some(parent_name) = &self.state.config.caddy.parent_name {
+            log::debug!("Caddy monitors will be organized under parent group with autokuma ID: '{}'", parent_name);
+        }
+
         let mut entities = vec![];
 
         for host in hosts {
@@ -167,6 +171,7 @@ impl Source for CaddySource {
 
             // Add parent_name if configured to organize monitors into a group
             if let Some(parent_name) = &self.state.config.caddy.parent_name {
+                log::debug!("Setting parent_name='{}' for monitor '{}'", parent_name, monitor_name);
                 value["parent_name"] = json!(parent_name);
             }
 
@@ -178,10 +183,11 @@ impl Source for CaddySource {
 
             match get_entity_from_value(self.state.clone(), id.clone(), value, context) {
                 Ok(entity) => {
+                    log::debug!("Successfully created monitor for host '{}' with ID '{}'", host, id);
                     entities.push((id, entity));
                 }
                 Err(e) => {
-                    log::warn!("Failed to create entity for host {}: {}", host, e);
+                    log::warn!("Failed to create entity for host '{}' (ID: '{}'): {}", host, id, e);
                 }
             }
         }

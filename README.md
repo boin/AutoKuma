@@ -442,10 +442,14 @@ To automatically organize all Caddy monitors under a group/folder, you need to:
 }
 ```
 
-2. Configure the `parent_name` to match the group's autokuma ID:
+2. Configure the `parent_name` to match the group's **autokuma ID** (which is the filename without extension):
 ```yaml
 AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"
 ```
+
+**Important**: The `parent_name` must be the **autokuma ID** (filename without extension), NOT the display name shown in Uptime Kuma. For example:
+- ✅ Correct: `parent_name: "caddy-group"` (matches the filename `caddy-group.json`)
+- ❌ Wrong: `parent_name: "Caddy Services"` (this is the display name, not the autokuma ID)
 
 All monitors discovered from Caddy will now appear under the "Caddy Services" group in Uptime Kuma.
 

@@ -150,10 +150,21 @@ To keep your Caddy monitors organized in Uptime Kuma:
 }
 ```
 
-2. **Set the parent_name** configuration to match the group's autokuma ID (filename without extension):
+2. **Set the parent_name** configuration to match the group's **autokuma ID** (filename without extension):
 ```yaml
 AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"
 ```
+
+**Important**: The `parent_name` must be the **autokuma ID**, NOT the display name shown in Uptime Kuma.
+
+- The autokuma ID is the filename without extension (e.g., `caddy-group` from `caddy-group.json`)
+- The display name is what you see in Uptime Kuma UI (e.g., "Caddy Services")
+
+**Example**:
+- ✅ Correct: `AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"` (matches filename `caddy-group.json`)
+- ❌ Wrong: `AUTOKUMA__CADDY__PARENT_NAME: "Caddy Services"` (this is display name, will fail with "No monitor named Caddy Services could be found")
+
+If you have an existing group in Uptime Kuma, you need to create a corresponding static monitor definition file with the autokuma ID that matches what you want to use as `parent_name`.
 
 All Caddy monitors will now appear nested under the "Caddy Services" folder in Uptime Kuma's UI.
 
@@ -162,6 +173,39 @@ All Caddy monitors will now appear nested under the "Caddy Services" folder in U
 If your Caddyfile contains wildcard hosts like `*.example.com`, AutoKuma will:
 - Strip the `*.` prefix
 - Create a monitor for `example.com`
+
+## Troubleshooting
+
+### Error: "No monitor named X could be found"
+
+This error occurs when the `parent_name` configuration doesn't match an existing autokuma ID.
+
+**Common causes**:
+1. **Using display name instead of autokuma ID**: The `parent_name` must be the autokuma ID (filename without extension), not the display name shown in Uptime Kuma.
+   - Wrong: `AUTOKUMA__CADDY__PARENT_NAME: "Services"` (display name)
+   - Correct: `AUTOKUMA__CADDY__PARENT_NAME: "services-group"` (autokuma ID from `services-group.json`)
+
+2. **Group doesn't exist as a static monitor**: If you have a group in Uptime Kuma but no corresponding static monitor definition, AutoKuma can't find it. Create a static monitor file like `./monitors/services-group.json`:
+```json
+{
+    "name": "Services",
+    "type": "group"
+}
+```
+
+3. **Mismatched autokuma ID**: Make sure the `parent_name` value exactly matches the filename (without `.json` extension) of your group definition.
+
+**Enable debug logging** to see detailed information:
+```yaml
+environment:
+  RUST_LOG: "debug"
+```
+
+This will show logs like:
+```
+[autokuma::sources::caddy_source] DEBUG: Caddy monitors will be organized under parent group with autokuma ID: 'caddy-group'
+[autokuma::sources::caddy_source] DEBUG: Setting parent_name='caddy-group' for monitor 'example.com'
+```
 
 ## Security Considerations
 
