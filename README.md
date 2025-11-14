@@ -35,6 +35,7 @@ AutoKuma initially supported sourcing monitor configurations from docker labels,
 |--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | Docker       | Monitors are sourced from container labels                                                                                                                                  | ✅       |
 | Files        | Monitors are sourced from .json/.toml files                                                                                                                                 | ✅       |
+| Caddy        | Monitors are automatically created for all hosts defined in Caddy2 config API                                                                                               | ✅       |
 | Docker Swarm | Monitors can be sourced from service and/or container labels                                                                                                                | ⚠️*     |
 | Kubernetes   | Monitors are sourced from CR, see the CRDs in `autokuma/kubernetes/crds-autokuma.yml`. Additionally the `Files` and `Docker` provider might be used depending on your setup | ⚠️*     |
 
@@ -113,6 +114,11 @@ services:
       # AUTOKUMA__DOCKER__HOSTS: unix:///var/run/docker.sock
       # AUTOKUMA__DOCKER__LABEL_PREFIX: kuma
       # AUTOKUMA__DOCKER__EXCLUDE_CONTAINER_PATTERNS: "^[a-f0-9]{12}_.*_"  # Exclude Docker Compose temporary containers
+      # AUTOKUMA__CADDY__ENABLED: "true"
+      # AUTOKUMA__CADDY__URL: "http://caddy:2019/config/"
+      # AUTOKUMA__CADDY__USE_HTTPS: "true"
+      # AUTOKUMA__CADDY__MONITOR_NAME_PREFIX: "Caddy - "
+      # AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"
       
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -152,6 +158,11 @@ AutoKuma can be configured using the following environment variables/config keys
 | `AUTOKUMA__DOCKER__TLS__VERIFY`    | `docker.tls.verify`     | Whether to verify the TLS certificate or not.                                                                            |
 | `AUTOKUMA__DOCKER__TLS__CERT`      | `docker.tls.cert`       | The path to a custom tls certificate in PEM format.                                                                      |
 | `AUTOKUMA__FILES__FOLLOW_SYMLINKS` | `files.follow_symlinks` | Whether AutoKuma should follow symlinks when looking for "static monitors" (Defaults to false)                           |
+| `AUTOKUMA__CADDY__ENABLED`         | `caddy.enabled`         | Whether Caddy integration should be enabled or not (Defaults to false)                                                   |
+| `AUTOKUMA__CADDY__URL`             | `caddy.url`             | The URL of the Caddy config API endpoint (Defaults to http://localhost:2019/config/)                                     |
+| `AUTOKUMA__CADDY__USE_HTTPS`       | `caddy.use_https`       | Whether to use HTTPS for the monitors generated from Caddy hosts (Defaults to true)                                      |
+| `AUTOKUMA__CADDY__MONITOR_NAME_PREFIX` | `caddy.monitor_name_prefix` | Optional prefix to add to monitor names for Caddy hosts                                                          |
+| `AUTOKUMA__CADDY__PARENT_NAME`     | `caddy.parent_name`     | Optional parent group name to organize all Caddy monitors under a group/folder                                           |
 
 AutoKuma will read configuration from a file named `autokuma.{toml,yaml,json}` in the current directory and in the following locations:
 
@@ -384,6 +395,75 @@ The default directory for static monitors is:
 | Windows  | `%LocalAppData%`\autokuma\static-monitors\                    | C:\Users\Alice\AppData\Local\autokuma\static-monitors\             |
 
 In case of static Monitors the id is determined by the filename (without the extension).
+
+### Caddy Integration 🔷
+AutoKuma can automatically create monitors for all hosts defined in your Caddy2 configuration by fetching the config from Caddy's admin API.
+
+#### How It Works
+1. AutoKuma polls the Caddy admin API endpoint (default: `http://localhost:2019/config/`)
+2. Parses the JSON configuration structure to extract hosts from `apps.http.servers.*.routes.*.match.*.host`
+3. Strips wildcard prefixes (e.g., `*.example.com` becomes `example.com`)
+4. Creates HTTP/HTTPS monitors for each discovered host
+5. Monitors are automatically updated on each sync interval
+
+#### Configuration
+
+To enable Caddy integration, configure the following environment variables:
+
+```yaml
+environment:
+  AUTOKUMA__CADDY__ENABLED: "true"
+  AUTOKUMA__CADDY__URL: "http://caddy:2019/config/"  # URL to Caddy config API
+  AUTOKUMA__CADDY__USE_HTTPS: "true"  # Whether to create HTTPS monitors (default: true)
+  AUTOKUMA__CADDY__MONITOR_NAME_PREFIX: "Caddy - "  # Optional prefix for monitor names
+  AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"  # Optional: organize monitors in a group
+```
+
+Or in a TOML config file:
+
+```toml
+[caddy]
+enabled = true
+url = "http://caddy:2019/config/"
+use_https = true
+monitor_name_prefix = "Caddy - "
+parent_name = "caddy-group"
+```
+
+#### Organizing Monitors in a Group
+
+To automatically organize all Caddy monitors under a group/folder, you need to:
+
+1. Create a group in your static monitors or via labels (you can name the file `caddy-group.json`):
+```json
+{
+    "name": "Caddy Services",
+    "type": "group"
+}
+```
+
+2. Configure the `parent_name` to match the group's **autokuma ID** (which is the filename without extension):
+```yaml
+AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"
+```
+
+**Important**: The `parent_name` must be the **autokuma ID** (filename without extension), NOT the display name shown in Uptime Kuma. For example:
+- ✅ Correct: `parent_name: "caddy-group"` (matches the filename `caddy-group.json`)
+- ❌ Wrong: `parent_name: "Caddy Services"` (this is the display name, not the autokuma ID)
+
+All monitors discovered from Caddy will now appear under the "Caddy Services" group in Uptime Kuma.
+
+#### Features
+
+When enabled, AutoKuma will:
+- Fetch the Caddy configuration JSON from the admin API
+- Extract all host names from server routes
+- Automatically create HTTP/HTTPS monitors for each host
+- Handle wildcard hosts by stripping the `*.` prefix
+- Update monitors when hosts are added or removed from Caddy
+- Optionally organize all monitors under a specified group
+
+The monitors are automatically created with sensible defaults (60s interval, 3 retries) and will be managed by AutoKuma just like any other monitor source.
 
 
 # Kuma CLI 🤖 <a href="https://crates.io/crates/kuma-cli"><img alt="Crates.io Version" src="https://img.shields.io/crates/v/kuma-cli?logo=rust&color=blue"></a> [![kuma](https://snapcraft.io/kuma/badge.svg)](https://snapcraft.io/kuma)

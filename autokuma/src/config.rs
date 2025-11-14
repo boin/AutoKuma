@@ -75,6 +75,32 @@ pub struct FilesConfig {
     pub follow_symlinks: bool,
 }
 
+#[serde_alias(ScreamingSnakeCase)]
+#[serde_inline_default]
+#[serde_as]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CaddyConfig {
+    /// Whether Caddy integration should be enabled or not.
+    #[serde_inline_default(false)]
+    pub enabled: bool,
+
+    /// The URL of the Caddy config API endpoint.
+    #[serde_inline_default("http://localhost:2019/config/".to_owned())]
+    pub url: String,
+
+    /// Whether to use HTTPS for the monitors generated from Caddy hosts.
+    #[serde_inline_default(true)]
+    pub use_https: bool,
+
+    /// Optional prefix to add to monitor names.
+    #[serde_inline_default(None)]
+    pub monitor_name_prefix: Option<String>,
+
+    /// Optional parent group name to organize all Caddy monitors under.
+    #[serde_inline_default(None)]
+    pub parent_name: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DeleteBehavior {
     #[serde(alias = "delete")]
@@ -94,6 +120,8 @@ pub struct Config {
     pub kubernetes: KubernetesConfig,
 
     pub files: FilesConfig,
+
+    pub caddy: CaddyConfig,
 
     /// The interval in between syncs.
     #[serde_inline_default(5.0)]
