@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::app_state::AppState;
 
+pub mod caddy_source;
 pub mod docker_source;
 pub mod file_source;
 pub mod source;
@@ -18,6 +19,10 @@ pub fn get_sources(state: Arc<AppState>) -> Vec<Box<dyn source::Source>> {
 
     if state.config.docker.enabled {
         sources.push(Box::new(docker_source::DockerSource::new(state.clone())));
+    }
+
+    if state.config.caddy.enabled {
+        sources.push(Box::new(caddy_source::CaddySource::new(state.clone())));
     }
 
     if state.config.kubernetes.enabled {
