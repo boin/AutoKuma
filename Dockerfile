@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY /usr/local/share/ca-certificates/ttd-root-ca.crt /usr/local/share/ca-certificates/ttd-root-ca.crt
-RUN update-ca-certificates
+# 注意：Secret 默认挂载到 /run/secrets/ID
+RUN --mount=type=secret,id=root_ca \
+    cp /run/secrets/root_ca /usr/local/share/ca-certificates/ttd-root-ca.crt && \
+    update-ca-certificates
 
 COPY --from=builder /usr/local/cargo/bin/autokuma /usr/local/bin/autokuma
 
