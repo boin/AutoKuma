@@ -5,6 +5,11 @@ ARG FEATURES
 ARG TARGETARCH
 WORKDIR /usr/src/autokuma
 
+# Inject Root CA for internal resources
+RUN --mount=type=secret,id=root_ca \
+    cp /run/secrets/root_ca /usr/local/share/ca-certificates/ttd-root-ca.crt && \
+    update-ca-certificates
+
 COPY . .
 RUN --mount=type=cache,target=/cache/$TARGETARCH,id=cache-ghcr.io/bigboot/autokuma-${FEATURES} \
     cargo install --features "${FEATURES}" --locked --target-dir /cache/$TARGETARCH --path ./autokuma 

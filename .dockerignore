@@ -2,3 +2,4 @@ target
 config.toml
 docker.sock
 Dockerfile
+compose.yaml

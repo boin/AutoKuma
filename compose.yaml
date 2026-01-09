@@ -1,0 +1,36 @@
+services:
+  autokuma:
+    container_name: autokuma
+    build:
+      context: .
+      secrets:
+        - root_ca
+    image: autokuma:latest
+    restart: always
+    environment:
+      # Uptime Kuma connection
+      AUTOKUMA__KUMA__URL: http://ttd-cctv:3001
+      AUTOKUMA__KUMA__USERNAME: admin
+      AUTOKUMA__KUMA__PASSWORD: set238
+      
+      # Enable Caddy integration
+      AUTOKUMA__CADDY__ENABLED: "true"
+      AUTOKUMA__CADDY__URL: "http://ttd-server/caddy_api/config/"
+      AUTOKUMA__CADDY__USE_HTTPS: "false"
+      AUTOKUMA__CADDY__MONITOR_NAME_PREFIX:
+      AUTOKUMA__CADDY__PARENT_NAME: "caddy-group"  # Optional: organize in a group
+      
+      # Static monitors path for creating the group
+      AUTOKUMA__STATIC_MONITORS: "/data/monitors"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - autokuma-data:/data
+      - ./monitor:/data/monitors  # Mount folder with static monitor definitions
+
+secrets:
+  root_ca:
+    file: /usr/local/share/ca-certificates/ttd-root-ca.crt
+
+volumes:
+  autokuma-data:
