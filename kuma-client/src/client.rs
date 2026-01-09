@@ -235,31 +235,75 @@ impl Worker {
         Ok(())
     }
 
+    async fn on_delete_monitor_from_list(self: &Arc<Self>, monitor_id: i32) -> Result<()> {
+        self.monitors.lock().await.remove(&monitor_id.to_string());
+        Ok(())
+    }
+
+    async fn on_update_monitor_into_list(self: &Arc<Self>, monitors: MonitorList) -> Result<()> {
+        self.monitors.lock().await.extend(monitors);
+        Ok(())
+    }
+
     async fn on_event(self: &Arc<Self>, event: Event, payload: Value) -> Result<()> {
         match event {
             Event::MonitorList => {
-                self.on_monitor_list(serde_json::from_value(payload).unwrap())
-                    .await?
+                self.on_monitor_list(
+                    serde_json::from_value(payload)
+                        .log_error(module_path!(), |_| "Failed to deserialize MonitorList")
+                        .unwrap(),
+                )
+                .await?
             }
             Event::NotificationList => {
-                self.on_notification_list(serde_json::from_value(payload).unwrap())
-                    .await?
+                self.on_notification_list(
+                    serde_json::from_value(payload)
+                        .log_error(module_path!(), |_| "Failed to deserialize NotificationList")
+                        .unwrap(),
+                )
+                .await?
             }
             Event::MaintenanceList => {
-                self.on_maintenance_list(serde_json::from_value(payload).unwrap())
-                    .await?
+                self.on_maintenance_list(
+                    serde_json::from_value(payload)
+                        .log_error(module_path!(), |_| "Failed to deserialize MaintenanceList")
+                        .unwrap(),
+                )
+                .await?
             }
             Event::StatusPageList => {
-                self.on_status_page_list(serde_json::from_value(payload).unwrap())
-                    .await?
+                self.on_status_page_list(
+                    serde_json::from_value(payload)
+                        .log_error(module_path!(), |_| "Failed to deserialize StatusPageList")
+                        .unwrap(),
+                )
+                .await?
             }
             Event::DockerHostList => {
-                self.on_docker_host_list(serde_json::from_value(payload).unwrap())
-                    .await?
+                self.on_docker_host_list(
+                    serde_json::from_value(payload)
+                        .log_error(module_path!(), |_| "Failed to deserialize DockerHostList")
+                        .unwrap(),
+                )
+                .await?
             }
             Event::Info => self.on_info().await?,
             Event::AutoLogin => self.on_auto_login().await?,
             Event::LoginRequired => self.on_login_required().await?,
+            Event::UpdateMonitorIntoList => {
+                self.on_update_monitor_into_list(
+                    serde_json::from_value(payload)
+                        .log_error(module_path!(), |_| {
+                            "Failed to deserialize UpdateMonitorIntoList"
+                        })
+                        .unwrap(),
+                )
+                .await?
+            }
+            Event::DeleteMonitorFromList => {
+                self.on_delete_monitor_from_list(payload.as_i64().unwrap().try_into().unwrap())
+                    .await?
+            }
             _ => {}
         }
 
