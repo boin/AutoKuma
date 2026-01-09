@@ -3,6 +3,8 @@ services:
     container_name: autokuma
     build:
       context: .
+      args:
+        - FEATURES=native-tls
       secrets:
         - root_ca
     image: autokuma:latest

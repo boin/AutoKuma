@@ -20,6 +20,7 @@ default = ["kubernetes"]
 kubernetes = ["dep:kube", "dep:k8s-openapi", "dep:schemars", "dep:serde_yaml"]
 tokio-console = ["dep:console-subscriber", "tokio/tracing"]
 uptime-kuma-v1 = ["kuma-client/uptime-kuma-v1"]
+native-tls = []
 
 [dependencies]
 kuma-client = { path = "../kuma-client", version = "0.0.0", features = [
