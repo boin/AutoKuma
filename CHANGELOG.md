@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix autokuma trying to use itself as a config file, see #149
 - Fix resend_interval missing for most monitor types, see #152
+- Fix duplicate monitor creation caused by `db.clean()` racing against a stale WebSocket cache snapshot when creating many monitors in a batch, see #177
+- Fix "entity reappeared" guard in the deletion queue never firing due to a variable shadowing bug
 
 ## [2.0.0] - 2025-11-12
 ### Changed

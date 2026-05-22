@@ -219,39 +219,6 @@ impl Sync {
 
         self.app_state.db.migrate(&self.app_state, &kuma).await?;
 
-        self.app_state.db.clean(
-            &kuma
-                .get_monitors()
-                .await?
-                .into_iter()
-                .filter_map(|(_, monitor)| monitor.common().id().clone())
-                .collect::<HashSet<_>>(),
-            &kuma
-                .get_notifications()
-                .await?
-                .into_iter()
-                .filter_map(|notification| notification.id)
-                .collect::<HashSet<_>>(),
-            &kuma
-                .get_docker_hosts()
-                .await?
-                .into_iter()
-                .filter_map(|docker_host| docker_host.id)
-                .collect::<HashSet<_>>(),
-            &kuma
-                .get_tags()
-                .await?
-                .into_iter()
-                .filter_map(|tag| tag.tag_id)
-                .collect::<HashSet<_>>(),
-            &kuma
-                .get_status_pages()
-                .await?
-                .into_iter()
-                .filter_map(|(_, status_page)| status_page.slug)
-                .collect::<HashSet<_>>(),
-        )?;
-
         if let Some(auth_token) = kuma.get_auth_token().await {
             self.auth_token = Some(auth_token);
         }
@@ -332,7 +299,7 @@ impl Sync {
             let name = entity.name().to_owned();
 
             // Entity reappeared, do not delete
-            if !to_delete.iter().any(|(name, _)| name == name) {
+            if !to_delete.iter().any(|(id, _)| **id == name) {
                 continue;
             }
 
@@ -343,6 +310,39 @@ impl Sync {
                     format!("Failed to delete '{}': {}", name, e)
                 });
         }
+
+        self.app_state.db.clean(
+            &kuma
+                .get_monitors()
+                .await?
+                .into_iter()
+                .filter_map(|(_, monitor)| monitor.common().id().clone())
+                .collect::<HashSet<_>>(),
+            &kuma
+                .get_notifications()
+                .await?
+                .into_iter()
+                .filter_map(|notification| notification.id)
+                .collect::<HashSet<_>>(),
+            &kuma
+                .get_docker_hosts()
+                .await?
+                .into_iter()
+                .filter_map(|docker_host| docker_host.id)
+                .collect::<HashSet<_>>(),
+            &kuma
+                .get_tags()
+                .await?
+                .into_iter()
+                .filter_map(|tag| tag.tag_id)
+                .collect::<HashSet<_>>(),
+            &kuma
+                .get_status_pages()
+                .await?
+                .into_iter()
+                .filter_map(|(_, status_page)| status_page.slug)
+                .collect::<HashSet<_>>(),
+        )?;
 
         Ok(())
     }

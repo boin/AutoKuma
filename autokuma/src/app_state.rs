@@ -391,7 +391,7 @@ impl AppDB {
         let mut batch = sled::Batch::default();
 
         for (key, value) in to_delete {
-            println!("Removing {}", String::from_utf8_lossy(&value));
+            log::debug!("Removing {}", String::from_utf8_lossy(&value));
             batch.remove(key);
         }
 
