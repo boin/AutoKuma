@@ -214,6 +214,20 @@ impl Sync {
         Ok(self.client.as_ref().unwrap().clone())
     }
 
+    fn is_connection_error(err: &crate::error::Error) -> bool {
+        matches!(
+            err,
+            crate::error::Error::Kuma(
+                KumaError::CommunicationError(_)
+                    | KumaError::ConnectionTimeout
+                    | KumaError::NotReady
+                    | KumaError::CallTimeout(_)
+                    | KumaError::NotAuthenticated
+                    | KumaError::Disconnected
+            )
+        )
+    }
+
     async fn do_sync(&mut self) -> Result<()> {
         let kuma = self.get_connection().await?;
 
@@ -379,6 +393,10 @@ impl Sync {
         loop {
             if let Err(err) = self.do_sync().await {
                 warn!("Encountered error during sync: {}", err);
+                if Self::is_connection_error(&err) {
+                    debug!("Connection error detected, will reconnect on next cycle");
+                    self.client = None;
+                }
             }
 
             match futures_util::future::select(

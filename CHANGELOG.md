@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix resend_interval missing for most monitor types, see #152
 - Fix duplicate monitor creation caused by `db.clean()` racing against a stale WebSocket cache snapshot when creating many monitors in a batch, see #177
 - Fix "entity reappeared" guard in the deletion queue never firing due to a variable shadowing bug
+- Fix connection not recovering after EngineIO errors or Uptime Kuma restarts — dead connections are now dropped and reconnected on the next sync cycle, see #157
 
 ## [2.0.0] - 2025-11-12
 ### Changed
