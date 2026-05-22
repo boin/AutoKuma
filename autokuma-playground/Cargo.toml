@@ -22,7 +22,6 @@ kuma-client = { path = "../kuma-client", version = "0.0.0", default-features = f
 ] }
 
 console_error_panic_hook = "0.1.7"
-getrandom = { version = "0.4", features = ["wasm_js"] }
 itertools = { workspace = true }
 leptos = { version = "0.8.6", features = ["csr"] }
 serde = { workspace = true }
@@ -40,3 +39,5 @@ web-sys = { version = "0.3.77", features = [
     "HtmlSelectElement",
     "HtmlTextAreaElement",
 ] }
+# Make sure getrandom js feature is enabled for wasm targets
+getrandom = { version = "*", features = ["js"] }
