@@ -11,11 +11,13 @@ repository = "https://github.com/BigBoot/AutoKuma"
 
 [workspace.dependencies]
 async-trait = { version = "0.1.83" }
+# Kept only as a dev-dependency in autokuma for the v0→v1 database migration test.
 bincode = { version = "2.0.1", default-features = false, features = [
     "std",
     "serde",
 ] }
-bollard = { version = "0.20.1", features = ["aws-lc-rs"] }
+postcard = { version = "1", features = ["alloc"] }
+bollard = { version = "0.21.0", features = ["aws-lc-rs"] }
 chrono = { version = "0.4.40", features = ["serde"] }
 clap = { version = "4.5.21", features = ["derive"] }
 config = { version = "0.15.11" }
@@ -62,7 +64,7 @@ serde_yaml = { version = "0.9.34" }
 schemars = { version = "1.0.4" }
 sled = { version = "0.34.7" }
 unescaper = { version = "0.1.5" }
-shadow-rs = { version = "1.1.1", default-features = false }
+shadow-rs = { version = "2.0.0", default-features = false }
 strum = { version = "0.28.0", features = ["derive"] }
 supports-color = { version = "3.0.1" }
 tap = { version = "1.0.1" }
