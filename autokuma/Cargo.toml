@@ -27,7 +27,7 @@ kuma-client = { path = "../kuma-client", version = "0.0.0", features = [
 ] }
 
 async-trait = { workspace = true }
-bincode = { workspace = true }
+postcard = { workspace = true }
 bollard = { workspace = true }
 chrono = { workspace = true }
 config = { workspace = true }
@@ -43,7 +43,6 @@ log = { workspace = true }
 owo-colors = { workspace = true }
 regex = { workspace = true }
 rust_socketio = { workspace = true }
-seq-macro = { workspace = true }
 serde = { workspace = true }
 serde_alias = { workspace = true }
 serde_json = { workspace = true }
@@ -67,3 +66,4 @@ serde_yaml = { workspace = true, optional = true }
 
 [dev-dependencies]
 rand = { workspace = true }
+bincode = { workspace = true }

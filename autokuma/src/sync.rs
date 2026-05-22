@@ -217,7 +217,7 @@ impl Sync {
     async fn do_sync(&mut self) -> Result<()> {
         let kuma = self.get_connection().await?;
 
-        crate::migrations::migrate(&self.app_state, &kuma).await?;
+        self.app_state.db.migrate(&self.app_state, &kuma).await?;
 
         self.app_state.db.clean(
             &kuma

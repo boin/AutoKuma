@@ -1,5 +1,7 @@
 use chrono::{self, DateTime};
 use itertools::Itertools;
+use kuma_client::Client;
+use log::info;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -41,26 +43,21 @@ fn encode_string(id: String) -> Result<IVec> {
     Ok(id.as_bytes().to_vec().into())
 }
 
-fn encode_value<V>(value: V) -> Result<IVec>
+pub(crate) fn encode_value<V>(value: V) -> Result<IVec>
 where
     V: serde::Serialize,
 {
-    Ok(
-        bincode::serde::encode_to_vec(value, bincode::config::standard())
-            .map_err(|e| Error::InternalError(format!("Unable to decode db entry: {}", e)))?
-            .into(),
-    )
+    Ok(postcard::to_allocvec(&value)
+        .map_err(|e| Error::InternalError(format!("Unable to encode db entry: {}", e)))?
+        .into())
 }
 
-fn decode_value<'de, V>(value: IVec) -> Result<V>
+pub(crate) fn decode_value<V>(value: IVec) -> Result<V>
 where
     V: serde::de::DeserializeOwned,
 {
-    Ok(
-        bincode::serde::decode_from_slice(&value, bincode::config::standard())
-            .map(|(key, _)| key)
-            .map_err(|e| Error::InternalError(format!("Unable to decode db entry: {}", e)))?,
-    )
+    postcard::from_bytes(&value)
+        .map_err(|e| Error::InternalError(format!("Unable to decode db entry: {}", e)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,14 +66,18 @@ pub struct DeleteEntry {
     pub entity: EntitySelector,
 }
 
+pub(crate) struct AppDBTables {
+    pub monitors: DBTable<String, i32>,
+    pub to_delete: DBTable<IVec, DeleteEntry>,
+    pub notifications: DBTable<String, i32>,
+    pub docker_hosts: DBTable<String, i32>,
+    pub tags: DBTable<String, i32>,
+    pub status_pages: DBTable<String, String>,
+}
+
 pub struct AppDB {
     db: sled::Db,
-    monitors: DBTable<String, i32>,
-    to_delete: DBTable<IVec, DeleteEntry>,
-    notifications: DBTable<String, i32>,
-    docker_hosts: DBTable<String, i32>,
-    tags: DBTable<String, i32>,
-    status_pages: DBTable<String, String>,
+    tables: AppDBTables,
 }
 
 trait IDTable<T> {
@@ -85,13 +86,13 @@ trait IDTable<T> {
     fn tree(&self) -> &sled::Tree;
 }
 
-trait ValueTable<V> {
+pub(crate) trait ValueTable<V> {
     fn encode_value(value: V) -> Result<IVec>;
     fn decode_value(value: IVec) -> Result<V>;
 }
 
 #[allow(dead_code)]
-trait KeyTable<K> {
+pub(crate) trait KeyTable<K> {
     fn encode_key(key: K) -> Result<IVec>;
     fn decode_key(key: IVec) -> Result<K>;
 }
@@ -102,8 +103,8 @@ trait KeyValueTable<K, V> {
     fn store_value(&self, key: K, value: V) -> Result<()>;
 }
 
-struct DBTable<K, V> {
-    tree: sled::Tree,
+pub(crate) struct DBTable<K, V> {
+    pub(crate) tree: sled::Tree,
     _k: std::marker::PhantomData<K>,
     _v: std::marker::PhantomData<V>,
 }
@@ -273,13 +274,15 @@ impl AppDB {
     pub fn new(data_path: &str) -> Result<Self> {
         let db = sled::open(format!("{}/autokuma.db", data_path))?;
         Ok(AppDB {
-            monitors: DBTable::new(&db, "monitors")?,
-            to_delete: DBTable::new(&db, "to_delete")?,
-            notifications: DBTable::new(&db, "notifications")?,
-            docker_hosts: DBTable::new(&db, "docker_hosts")?,
-            tags: DBTable::new(&db, "tags")?,
-            status_pages: DBTable::new(&db, "status_pages")?,
-            db: db,
+            tables: AppDBTables {
+                monitors: DBTable::new(&db, "monitors")?,
+                to_delete: DBTable::new(&db, "to_delete")?,
+                notifications: DBTable::new(&db, "notifications")?,
+                docker_hosts: DBTable::new(&db, "docker_hosts")?,
+                tags: DBTable::new(&db, "tags")?,
+                status_pages: DBTable::new(&db, "status_pages")?,
+            },
+            db,
         })
     }
 
@@ -299,11 +302,11 @@ impl AppDB {
 
     pub fn get_id<T: TryFrom<DatabaseId>>(&self, name: Name) -> Result<Option<T>> {
         let id = match &name {
-            Name::Monitor(name) => Self::get_value(&self.monitors, &name)?,
-            Name::Notification(name) => Self::get_value(&self.notifications, &name)?,
-            Name::DockerHost(name) => Self::get_value(&self.docker_hosts, &name)?,
-            Name::Tag(name) => Self::get_value(&self.tags, &name)?,
-            Name::StatusPage(name) => Self::get_value(&self.status_pages, &name)?,
+            Name::Monitor(name) => Self::get_value(&self.tables.monitors, &name)?,
+            Name::Notification(name) => Self::get_value(&self.tables.notifications, &name)?,
+            Name::DockerHost(name) => Self::get_value(&self.tables.docker_hosts, &name)?,
+            Name::Tag(name) => Self::get_value(&self.tables.tags, &name)?,
+            Name::StatusPage(name) => Self::get_value(&self.tables.status_pages, &name)?,
         };
 
         id.map(|id| T::try_from(id)).transpose().map_err(|_| {
@@ -319,24 +322,28 @@ impl AppDB {
         let id = id.into();
         match (&name, id) {
             (Name::Monitor(name), DatabaseId::I32(id)) => self
+                .tables
                 .monitors
                 .tree()
-                .insert(name, self.monitors.store_id(id)?)?,
+                .insert(name, self.tables.monitors.store_id(id)?)?,
             (Name::Notification(name), DatabaseId::I32(id)) => self
+                .tables
                 .notifications
                 .tree()
-                .insert(name, self.notifications.store_id(id)?)?,
+                .insert(name, self.tables.notifications.store_id(id)?)?,
             (Name::DockerHost(name), DatabaseId::I32(id)) => self
+                .tables
                 .docker_hosts
                 .tree()
-                .insert(name, self.docker_hosts.store_id(id)?)?,
+                .insert(name, self.tables.docker_hosts.store_id(id)?)?,
             (Name::Tag(name), DatabaseId::I32(id)) => {
-                self.tags.tree().insert(name, self.tags.store_id(id)?)?
+                self.tables.tags.tree().insert(name, self.tables.tags.store_id(id)?)?
             }
             (Name::StatusPage(name), DatabaseId::String(id)) => self
+                .tables
                 .status_pages
                 .tree()
-                .insert(name, self.status_pages.store_id(id)?)?,
+                .insert(name, self.tables.status_pages.store_id(id)?)?,
             _ => Err(Error::InternalError(format!(
                 "Invalid key type {} for Name {}",
                 std::any::type_name::<T>(),
@@ -360,16 +367,16 @@ impl AppDB {
 
     pub fn remove_id(&self, name: Name) -> Result<()> {
         let (tree, key) = match &name {
-            Name::Monitor(name) => (&self.monitors.tree(), name),
-            Name::Notification(name) => (&self.notifications.tree(), name),
-            Name::DockerHost(name) => (&self.docker_hosts.tree(), name),
-            Name::Tag(name) => (&self.tags.tree(), name),
-            Name::StatusPage(name) => (&self.status_pages.tree(), name),
+            Name::Monitor(name) => (&self.tables.monitors.tree(), name),
+            Name::Notification(name) => (&self.tables.notifications.tree(), name),
+            Name::DockerHost(name) => (&self.tables.docker_hosts.tree(), name),
+            Name::Tag(name) => (&self.tables.tags.tree(), name),
+            Name::StatusPage(name) => (&self.tables.status_pages.tree(), name),
         };
 
         tree.remove(key)?;
 
-        self.to_delete.tree.remove(encode_value(name)?)?;
+        self.tables.to_delete.tree.remove(encode_value(name)?)?;
 
         Ok(())
     }
@@ -401,17 +408,17 @@ impl AppDB {
         tags: &HashSet<i32>,
         status_pages: &HashSet<String>,
     ) -> Result<()> {
-        self.clean_table(&self.monitors, monitors)?;
-        self.clean_table(&self.notifications, notifications)?;
-        self.clean_table(&self.docker_hosts, docker_hosts)?;
-        self.clean_table(&self.tags, tags)?;
-        self.clean_table(&self.status_pages, status_pages)?;
+        self.clean_table(&self.tables.monitors, monitors)?;
+        self.clean_table(&self.tables.notifications, notifications)?;
+        self.clean_table(&self.tables.docker_hosts, docker_hosts)?;
+        self.clean_table(&self.tables.tags, tags)?;
+        self.clean_table(&self.tables.status_pages, status_pages)?;
 
         Ok(())
     }
 
     pub fn get_monitors(&self) -> Result<Vec<(String, i32)>> {
-        Self::get_entries(&self.monitors)
+        Self::get_entries(&self.tables.monitors)
     }
 
     pub fn request_to_delete(
@@ -419,7 +426,7 @@ impl AppDB {
         entity: EntitySelector,
         delete_at: DateTime<chrono::Utc>,
     ) -> Result<()> {
-        _ = self.to_delete.tree.compare_and_swap(
+        _ = self.tables.to_delete.tree.compare_and_swap(
             encode_value(entity.clone())?,
             None as Option<&[u8]>,
             Some(DBTable::<String, DeleteEntry>::encode_value(DeleteEntry {
@@ -434,6 +441,7 @@ impl AppDB {
     pub fn get_entities_to_delete(&self) -> Result<Vec<EntitySelector>> {
         let now = chrono::Utc::now();
         let to_delete = self
+            .tables
             .to_delete
             .iter()
             .filter(|(_, entry)| entry.delete_at < now)
@@ -443,7 +451,7 @@ impl AppDB {
         for (key, _) in to_delete.iter() {
             batch.remove(key);
         }
-        self.to_delete.tree.apply_batch(batch)?;
+        self.tables.to_delete.tree.apply_batch(batch)?;
 
         Ok(to_delete
             .into_iter()
@@ -452,19 +460,19 @@ impl AppDB {
     }
 
     pub fn get_notifications(&self) -> Result<Vec<(String, i32)>> {
-        Self::get_entries(&self.notifications)
+        Self::get_entries(&self.tables.notifications)
     }
 
     pub fn get_docker_hosts(&self) -> Result<Vec<(String, i32)>> {
-        Self::get_entries(&self.docker_hosts)
+        Self::get_entries(&self.tables.docker_hosts)
     }
 
     pub fn get_tags(&self) -> Result<Vec<(String, i32)>> {
-        Self::get_entries(&self.tags)
+        Self::get_entries(&self.tables.tags)
     }
 
     pub fn get_status_pages(&self) -> Result<Vec<(String, String)>> {
-        Self::get_entries(&self.status_pages)
+        Self::get_entries(&self.tables.status_pages)
     }
 
     pub fn get_version(&self) -> Result<i32> {
@@ -478,6 +486,34 @@ impl AppDB {
 
     pub fn set_version(&self, version: i32) -> Result<()> {
         self.db.insert("version", &version.to_le_bytes())?;
+        Ok(())
+    }
+
+    pub async fn migrate(&self, state: &AppState, kuma: &Client) -> Result<()> {
+        use crate::migrations::{CURRENT_VERSION, MIGRATIONS};
+        loop {
+            let version = self.get_version()?;
+
+            if version > *CURRENT_VERSION {
+                log::error!(
+                    "Database version {} is higher than the current version ({}), refusing to continue.",
+                    version,
+                    *CURRENT_VERSION
+                );
+                return Ok(());
+            }
+
+            if version < *CURRENT_VERSION {
+                info!("Migrating database to version {}", version + 1);
+                let migration = MIGRATIONS[version as usize];
+                migration(&self.tables, state, kuma).await?;
+                self.set_version(version + 1)?;
+                continue;
+            }
+
+            break;
+        }
+
         Ok(())
     }
 }
