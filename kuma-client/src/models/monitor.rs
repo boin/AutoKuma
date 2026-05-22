@@ -1304,6 +1304,12 @@ monitor_type! {
         #[serde(alias = "grpc_metadata")]
         #[serde_as(as = "Option<DeserializeBoolLenient>")]
         pub cache_bust: Option<bool>,
+
+        #[cfg(not(feature = "uptime-kuma-v1"))]
+        #[serde(rename = "retryOnlyOnStatusCodeFailure")]
+        #[serde(alias = "retry_only_on_status_code_failure")]
+        #[serde_as(as = "Option<DeserializeBoolLenient>")]
+        pub retry_only_on_status_code_failure: Option<bool>,
     }
 }
 

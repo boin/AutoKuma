@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `kuma` cli to the autokuma docker container for easier troubleshooting
 - Support for loading config values from files via `@/path/to/file` syntax in environment variables, useful for Docker/Kubernetes secrets, see #136
 - Support for defining `!Snippets` via environment variables using `AUTOKUMA__SNIPPETS__n__KEY` / `AUTOKUMA__SNIPPETS__n__VALUE`, see #171
+- Add support for `retry_only_on_status_code_failure` on `json-query` monitors, see #172
 
 ### Fixed
 - Fix autokuma trying to use itself as a config file, see #149
