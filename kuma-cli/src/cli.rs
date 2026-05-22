@@ -3,6 +3,7 @@ use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use config::{ConfigBuilder, File, FileFormat, builder::DefaultState};
 use kuma_client::{
     build::{LONG_VERSION, SHORT_VERSION},
+    config::source::Environment,
     Config,
 };
 use serde_json::json;
@@ -104,9 +105,10 @@ fn load_autokuma_config(mut builder: ConfigBuilder<DefaultState>) -> ConfigBuild
     load_from_file!(Path::new("autokuma.json"), serde_json::from_slice::<serde_json::Value>);
 
     builder = builder.add_source(
-        config::Environment::with_prefix("AUTOKUMA__KUMA")
+        Environment::with_prefix("AUTOKUMA__KUMA")
             .separator("__")
-            .prefix_separator("__"),
+            .prefix_separator("__")
+            .secret_files(true),
     );
 
     builder
@@ -120,14 +122,15 @@ impl From<Cli> for Config {
                 FileFormat::Json,
             ))
             .pipe(|builder| load_autokuma_config(builder))
-            .add_source(config::File::with_name(&dirs::config_local_dir().map(|dir| dir.join("kuma").join("config").to_string_lossy().to_string()).unwrap_or_default()).required(false))
+            .add_source(File::with_name(&dirs::config_local_dir().map(|dir| dir.join("kuma").join("config").to_string_lossy().to_string()).unwrap_or_default()).required(false))
             .add_source(File::new("kuma.toml", FileFormat::Toml).required(false))
             .add_source(File::new("kuma.yaml", FileFormat::Yaml).required(false))
             .add_source(File::new("kuma.json", FileFormat::Json).required(false))
             .add_source(
-                config::Environment::with_prefix("KUMA")
+                Environment::with_prefix("KUMA")
                     .separator("__")
-                    .prefix_separator("__"),
+                    .prefix_separator("__")
+                    .secret_files(true),
             )
             .set_default("headers", Vec::<String>::new()).unwrap()
             .set_override_option("url", value.url.clone()).unwrap()

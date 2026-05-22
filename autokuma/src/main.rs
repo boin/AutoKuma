@@ -1,9 +1,10 @@
 use crate::util::ResultOrDie;
-use ::config::{Config, Environment, File, FileFormat};
+use ::config::{Config, File, FileFormat};
 use flexi_logger::{
     AdaptiveFormat, Cleanup, Criterion, Duplicate, FileSpec, Logger, LoggerHandle, Naming,
 };
 use kuma_client::build::SHORT_VERSION;
+use kuma_client::config::source::Environment;
 use kuma_client::util::ResultLogger;
 use owo_colors::{
     colors::{self, xterm},
@@ -100,7 +101,7 @@ fn module_style(module: &str) -> Style {
 #[test]
 fn test_module_style() {
     use rand::RngExt;
-    
+
     for i in 0..10 {
         let mut rng = rand::rng();
         let msg = loop {
@@ -210,7 +211,8 @@ async fn main() {
             .add_source(
                 Environment::with_prefix("AUTOKUMA")
                     .separator("__")
-                    .prefix_separator("__"),
+                    .prefix_separator("__")
+                    .secret_files(true),
             )
             .build()
             .print_error(|e| format!("Unable to load config: {}", e))

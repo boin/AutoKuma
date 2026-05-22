@@ -160,6 +160,20 @@ AutoKuma can be configured using the following environment variables/config keys
 | `AUTOKUMA__FILES__ENABLED`         | `files.enabled`         | Enable/disable Files source                                                                                              |
 | `AUTOKUMA__FILES__FOLLOW_SYMLINKS` | `files.follow_symlinks` | Whether AutoKuma should follow symlinks when looking for "static monitors" (Defaults to false)                           |
 
+#### Secret files
+
+Any environment variable value starting with `@/` is treated as an absolute file path — AutoKuma will read the file and use its contents as the config value (trailing newline stripped). This is useful for Docker secrets or Kubernetes secrets mounted as files:
+
+```yaml
+AUTOKUMA__KUMA__PASSWORD: "@/run/secrets/kuma_password"
+```
+
+To use a literal value that starts with `@/`, escape with `@@/`:
+
+```yaml
+AUTOKUMA__SOME__VALUE: "@@/not_a_file"  # resolved as @/not_a_file
+```
+
 AutoKuma will read configuration from a file named `autokuma.{toml,yaml,json}` in the current directory and in the following locations:
 
 | Platform | Value                                                                | Example                                                       |
@@ -403,7 +417,32 @@ kuma.__web: '{ "name": "Example HTTP", "url": "https://example.com", "keyword": 
 #### !Snippets
 There's a special case for snippets starting with a `!`, these snippets will apply to labels without requiring the prefix (i.e. `kuma.__`). The purpose of these is to be able to reuse existing labels from other tools. (Note: Due to this !Snippets will always receive a single string argument containing the label value instead of a structured list). 
 
-For example you could create a snippet to reuse traefik labels by defining a snippet called `!traefik.enable`:
+For example you could create a snippet to reuse traefik labels by defining a snippet called `!traefik.enable`.
+
+**Config files** — the snippet name can be quoted directly as the key:
+
+```toml
+[snippets]
+"!traefik.enable" = '''
+{% if args[0] == "true" %}
+    ...
+{% endif %}
+'''
+```
+
+**Environment variables** — because `!` and `.` are not valid in POSIX/Kubernetes env-var names, environmen variables use a two-part `KEY`/`VALUE` form. The numeric index is just a grouping key and can be any value:
+
+```yaml
+AUTOKUMA__SNIPPETS__0__KEY: "!traefik.enable"
+AUTOKUMA__SNIPPETS__0__VALUE: |-
+    {% if args[0] == "true" %}
+        ...
+    {% endif %}
+AUTOKUMA__SNIPPETS__1__KEY: "!traefik.http.routers"
+AUTOKUMA__SNIPPETS__1__VALUE: "..."
+```
+
+Below is a full example matching the original `!traefik.enable` snippet:
 ```jinja
 {# Only apply if value is "true" #}
 {% if args[0] == "true" %}

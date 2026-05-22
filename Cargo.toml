@@ -22,7 +22,7 @@ config = { version = "0.15.11" }
 const-str = { version = "1.1.0", features = ["proc"] }
 console-subscriber = { version = "0.5.0" }
 cute_custom_default = { version = "2.2.0" }
-dateparser = { version = "0.2.1" }
+dateparser = { version = "0.3.1" }
 derivative = { version = "2.2.0" }
 derive_more = { version = "2.0.1", features = ["from"] }
 dirs = { version = "6.0.0" }
@@ -62,7 +62,7 @@ serde_yaml = { version = "0.9.34" }
 schemars = { version = "1.0.4" }
 sled = { version = "0.34.7" }
 unescaper = { version = "0.1.5" }
-shadow-rs = { version = "1.1.1" }
+shadow-rs = { version = "1.1.1", default-features = false }
 strum = { version = "0.28.0", features = ["derive"] }
 supports-color = { version = "3.0.1" }
 tap = { version = "1.0.1" }

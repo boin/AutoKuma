@@ -5,6 +5,48 @@ use serde_inline_default::serde_inline_default;
 use serde_with::{DeserializeAs, PickFirst, SerializeAs, StringWithSeparator, formats::SemicolonSeparator, serde_as};
 use std::collections::HashMap;
 
+/// Intermediate form used when deserializing the `snippets` map.
+///
+/// In **config files**, snippets are written as plain key-value pairs where the
+/// key is the snippet name directly:
+///
+/// ```toml
+/// [snippets]
+/// web = "type=http"
+/// "!traefik.enable" = "{% if args[0] == 'true' %}...{% endif %}"
+/// ```
+///
+/// In **environment variables**, the name is the *value* of a `KEY` field because
+/// `!` and `.` are not valid in POSIX/Kubernetes env-var names.  A numeric index
+/// groups the two fields:
+///
+/// ```env
+/// AUTOKUMA__SNIPPETS__0__KEY=!traefik.enable
+/// AUTOKUMA__SNIPPETS__0__VALUE={% if args[0] == 'true' %}...{% endif %}
+/// ```
+///
+/// The outer numeric key is used only for grouping; it is discarded after
+/// deserialization.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum SnippetWrapper {
+    Map(String),
+    Pairs { key: String, value: String },
+}
+
+fn deserialize_snippet_wrapper<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(HashMap::<String, SnippetWrapper>::deserialize(deserializer)?
+        .into_iter()
+        .map(|(k, v)| match v {
+            SnippetWrapper::Map(template) => (k, template),
+            SnippetWrapper::Pairs { key, value } => (key, value),
+        })
+        .collect())
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DockerSource {
     #[serde(alias = "container")]
@@ -223,6 +265,7 @@ pub struct Config {
 
     /// Default settings applied to all generated Monitors.
     #[serde_inline_default(HashMap::new())]
+    #[serde(deserialize_with = "deserialize_snippet_wrapper")]
     pub snippets: HashMap<String, String>,
 
     /// A directory where log files should be stored
@@ -1013,6 +1056,53 @@ mod tests {
             assert_eq!(parsed.docker.hosts, expected_hosts);
             assert_eq!(parsed.kuma.url.as_str(), "http://all.local:3001/");
         }
+    }
+
+    #[test]
+    fn snippets_structured_env_var_produces_correct_name() {
+        let vars = base_env_vars_with(&[
+            ("AUTOKUMA__SNIPPETS__0__KEY", "!traefik.enable"),
+            ("AUTOKUMA__SNIPPETS__0__VALUE", "template body"),
+        ]);
+        let parsed = parse_from_environment(&vars);
+
+        assert_eq!(
+            parsed.snippets.get("!traefik.enable").map(String::as_str),
+            Some("template body")
+        );
+        assert!(!parsed.snippets.contains_key("0"), "grouping key must not appear as snippet name");
+    }
+
+    #[test]
+    fn snippets_multiple_structured_env_vars_all_inserted() {
+        let vars = base_env_vars_with(&[
+            ("AUTOKUMA__SNIPPETS__0__KEY", "!traefik.enable"),
+            ("AUTOKUMA__SNIPPETS__0__VALUE", "a"),
+            ("AUTOKUMA__SNIPPETS__1__KEY", "!traefik.http.routers"),
+            ("AUTOKUMA__SNIPPETS__1__VALUE", "b"),
+        ]);
+        let parsed = parse_from_environment(&vars);
+
+        assert_eq!(parsed.snippets.get("!traefik.enable").map(String::as_str), Some("a"));
+        assert_eq!(parsed.snippets.get("!traefik.http.routers").map(String::as_str), Some("b"));
+    }
+
+    #[test]
+    fn snippets_mixed_simple_and_structured_env_vars() {
+        let vars = base_env_vars_with(&[
+            ("AUTOKUMA__SNIPPETS__0__KEY", "!traefik.enable"),
+            ("AUTOKUMA__SNIPPETS__0__VALUE", "traefik template"),
+        ]);
+        let parsed = parse_from_environment(&vars);
+
+        // Simple snippets from base_env_vars still present
+        assert_eq!(parsed.snippets.get("http").map(String::as_str), Some("method=GET"));
+        assert_eq!(parsed.snippets.get("ping").map(String::as_str), Some("packet_size=64"));
+        // Structured snippet also present
+        assert_eq!(
+            parsed.snippets.get("!traefik.enable").map(String::as_str),
+            Some("traefik template")
+        );
     }
 
 }
