@@ -1,8 +1,6 @@
 mod engine;
 
-use engine::{
-    parse_compose_targets, parse_config, ConfigFormat, PlaygroundEngine,
-};
+use engine::{parse_compose_targets, parse_config, ConfigFormat, PlaygroundEngine};
 use kuma_client::build::{LONG_VERSION, SHORT_VERSION};
 use leptos::{ev::Event, prelude::*};
 use serde_json::Value;
@@ -250,7 +248,9 @@ fn empty_variable_rows() -> Vec<VariableRow> {
     }]
 }
 
-fn entity_rows(entities: Vec<engine::ParsedEntity>) -> Result<Vec<EntityRow>, engine::PlaygroundError> {
+fn entity_rows(
+    entities: Vec<engine::ParsedEntity>,
+) -> Result<Vec<EntityRow>, engine::PlaygroundError> {
     entities
         .into_iter()
         .map(|parsed| {
@@ -280,11 +280,7 @@ fn App() -> impl IntoView {
 
     let parsed_config = Memo::new(move |_| parse_config(&config_input.get(), &config_format.get()));
 
-    let engine = Memo::new(move |_| {
-        parsed_config
-            .get()
-            .and_then(PlaygroundEngine::new)
-    });
+    let engine = Memo::new(move |_| parsed_config.get().and_then(PlaygroundEngine::new));
 
     let targets = Memo::new(move |_| parse_compose_targets(&compose_input.get()));
 
@@ -303,17 +299,21 @@ fn App() -> impl IntoView {
         })
     });
 
-    let compose_entities = Memo::new(move |_| -> Result<Vec<engine::ParsedEntity>, engine::PlaygroundError> {
-        match (engine.get(), targets.get()) {
-            (Ok(engine), Ok(targets)) => engine.collect_compose_entities(&targets),
-            (Err(err), _) => Err(err),
-            (_, Err(err)) => Err(err),
-        }
-    });
+    let compose_entities = Memo::new(
+        move |_| -> Result<Vec<engine::ParsedEntity>, engine::PlaygroundError> {
+            match (engine.get(), targets.get()) {
+                (Ok(engine), Ok(targets)) => engine.collect_compose_entities(&targets),
+                (Err(err), _) => Err(err),
+                (_, Err(err)) => Err(err),
+            }
+        },
+    );
 
-    let compose_preview = Memo::new(move |_| -> Result<Vec<EntityRow>, engine::PlaygroundError> {
-        compose_entities.get().and_then(entity_rows)
-    });
+    let compose_preview = Memo::new(
+        move |_| -> Result<Vec<EntityRow>, engine::PlaygroundError> {
+            compose_entities.get().and_then(entity_rows)
+        },
+    );
 
     let snippet_preview = Memo::new(move |_| -> Result<String, engine::PlaygroundError> {
         match (engine.get(), active_target.get()) {

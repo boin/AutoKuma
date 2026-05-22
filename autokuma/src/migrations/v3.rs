@@ -1,4 +1,4 @@
-use crate::app_state::{AppDBTables, AppState, DeleteEntry, encode_value};
+use crate::app_state::{encode_value, AppDBTables, AppState, DeleteEntry};
 use crate::error::{Error, Result};
 use crate::name::EntitySelector;
 use futures_util::future::BoxFuture;

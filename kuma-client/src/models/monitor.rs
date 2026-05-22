@@ -1128,7 +1128,9 @@ where
     T: Into<GlobalPingSubtype>,
 {
     fn from(value: MonitorGlobalPing<T>) -> Self {
-        Monitor::GlobalPing { value: value.into() }
+        Monitor::GlobalPing {
+            value: value.into(),
+        }
     }
 }
 

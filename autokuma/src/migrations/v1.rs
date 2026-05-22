@@ -13,51 +13,51 @@ pub fn migrate<'a>(
     kuma: &'a Client,
 ) -> BoxFuture<'a, Result<()>> {
     Box::pin(async move {
-    let autokuma_tag = kuma
-        .get_tags()
-        .await?
-        .iter()
-        .find(|x| {
-            x.name
-                .as_ref()
-                .is_some_and(|name| name == &state.config.tag_name)
-        })
-        .map(|tag| tag.tag_id)
-        .flatten();
-
-    if let Some(autokuma_tag) = autokuma_tag {
-        if !env::var("AUTOKUMA__MIGRATE").is_ok_and(|x| x == "true") {
-            error!(
-                "Migration required, but AUTOKUMA__MIGRATE is not set to 'true', refusing to continue to avoid data loss. Please read the CHANGELOG and then set AUTOKUMA__MIGRATE=true to continue."
-            );
-            return Ok(());
-        }
-
-        let entries = kuma
-            .get_monitors()
+        let autokuma_tag = kuma
+            .get_tags()
             .await?
             .iter()
-            .filter_map(|(_, monitor)| {
-                monitor
-                    .common()
-                    .tags()
-                    .iter()
-                    .find(|x| x.tag_id == Some(autokuma_tag))
-                    .map(|tag| tag.value.clone())
-                    .flatten()
-                    .map(|name| (name, monitor.common().id().unwrap_or(-1)))
+            .find(|x| {
+                x.name
+                    .as_ref()
+                    .is_some_and(|name| name == &state.config.tag_name)
             })
-            .collect_vec();
+            .map(|tag| tag.tag_id)
+            .flatten();
 
-        info!("Migrating {} monitors", entries.len());
+        if let Some(autokuma_tag) = autokuma_tag {
+            if !env::var("AUTOKUMA__MIGRATE").is_ok_and(|x| x == "true") {
+                error!(
+                "Migration required, but AUTOKUMA__MIGRATE is not set to 'true', refusing to continue to avoid data loss. Please read the CHANGELOG and then set AUTOKUMA__MIGRATE=true to continue."
+            );
+                return Ok(());
+            }
 
-        for (name, id) in entries {
-            state.db.store_id(Name::Monitor(name), id)?;
+            let entries = kuma
+                .get_monitors()
+                .await?
+                .iter()
+                .filter_map(|(_, monitor)| {
+                    monitor
+                        .common()
+                        .tags()
+                        .iter()
+                        .find(|x| x.tag_id == Some(autokuma_tag))
+                        .map(|tag| tag.value.clone())
+                        .flatten()
+                        .map(|name| (name, monitor.common().id().unwrap_or(-1)))
+                })
+                .collect_vec();
+
+            info!("Migrating {} monitors", entries.len());
+
+            for (name, id) in entries {
+                state.db.store_id(Name::Monitor(name), id)?;
+            }
+
+            kuma.delete_tag(autokuma_tag).await?;
         }
 
-        kuma.delete_tag(autokuma_tag).await?;
-    }
-
-    Ok(())
+        Ok(())
     })
 }

@@ -201,11 +201,14 @@ impl PlaygroundEngine {
     }
 
     pub fn get_defaults(&self, entity_type: impl AsRef<str>) -> Vec<(String, serde_json::Value)> {
-        vec![self.defaults.get("*"), self.defaults.get(entity_type.as_ref())]
-            .into_iter()
-            .flat_map(|defaults| defaults.into_iter().flatten())
-            .map(|(key, value)| (key.to_owned(), json!(value)))
-            .collect()
+        vec![
+            self.defaults.get("*"),
+            self.defaults.get(entity_type.as_ref()),
+        ]
+        .into_iter()
+        .flat_map(|defaults| defaults.into_iter().flatten())
+        .map(|(key, value)| (key.to_owned(), json!(value)))
+        .collect()
     }
 
     pub fn collect_compose_entities(&self, targets: &[MockTarget]) -> Result<Vec<ParsedEntity>> {
@@ -334,9 +337,13 @@ trait ParseValue {
     {
         let entity_type = value
             .as_object()
-            .ok_or_else(|| PlaygroundError::DeserializeError("Invalid entity structure".to_owned()))?
+            .ok_or_else(|| {
+                PlaygroundError::DeserializeError("Invalid entity structure".to_owned())
+            })?
             .get("type")
-            .ok_or_else(|| PlaygroundError::DeserializeError("Missing `type` parameter".to_owned()))?
+            .ok_or_else(|| {
+                PlaygroundError::DeserializeError("Missing `type` parameter".to_owned())
+            })?
             .as_str()
             .ok_or_else(|| {
                 PlaygroundError::DeserializeError(
@@ -538,8 +545,8 @@ pub fn parse_compose_targets(compose_text: &str) -> Result<Vec<MockTarget>> {
         return Ok(Vec::new());
     }
 
-    let compose: ComposeFile =
-        serde_yaml::from_str(compose_text).map_err(|e| PlaygroundError::ComposeError(e.to_string()))?;
+    let compose: ComposeFile = serde_yaml::from_str(compose_text)
+        .map_err(|e| PlaygroundError::ComposeError(e.to_string()))?;
 
     let system_info = build_system_info(&compose);
     let mut targets = Vec::new();
@@ -555,8 +562,16 @@ pub fn parse_compose_targets(compose_text: &str) -> Result<Vec<MockTarget>> {
             .clone()
             .unwrap_or_else(|| service_name.clone());
         let container_labels = normalize_labels(service.labels.clone())?;
-        let service_labels = normalize_labels(service.deploy.as_ref().and_then(|deploy| deploy.labels.clone()))?;
-        let image = service.image.clone().unwrap_or_else(|| "docker.io/library/alpine:latest".to_owned());
+        let service_labels = normalize_labels(
+            service
+                .deploy
+                .as_ref()
+                .and_then(|deploy| deploy.labels.clone()),
+        )?;
+        let image = service
+            .image
+            .clone()
+            .unwrap_or_else(|| "docker.io/library/alpine:latest".to_owned());
         let container_id = pseudo_digest(&format!("container:{service_name}"), 64);
         let image_id = format!("sha256:{}", pseudo_digest(&format!("image:{image}"), 64));
         let container = build_container_value(
@@ -569,7 +584,8 @@ pub fn parse_compose_targets(compose_text: &str) -> Result<Vec<MockTarget>> {
             &container_labels,
             &service,
         );
-        let service_struct = build_service_value(index, &service_name, &image, &service_labels, &service);
+        let service_struct =
+            build_service_value(index, &service_name, &image, &service_labels, &service);
 
         let container_context = json!({
             "container_id": container_id,
@@ -629,7 +645,9 @@ pub fn get_kuma_labels(
                 .chain(
                     labels
                         .iter()
-                        .filter(|(key, _)| engine.config.snippets.contains_key(&format!("!{}", key)))
+                        .filter(|(key, _)| {
+                            engine.config.snippets.contains_key(&format!("!{}", key))
+                        })
                         .map(|(key, value)| Ok((format!("__!{}", key), value.to_owned()))),
                 )
                 .collect::<Result<Vec<_>>>()
@@ -761,12 +779,13 @@ fn parse_entities_from_labels(
         .map(|(key, value)| (key, group_by_prefix(value, ".")))
         .flat_map(|(id, entities)| {
             entities.into_iter().map(move |(prefix, settings)| {
-                let entity_type = serde_json::from_value::<EntityType>(serde_json::Value::String(prefix))
-                    .map_err(|_| {
-                        PlaygroundError::DeserializeError(format!(
-                            "Cannot create {id} because it has an invalid type"
-                        ))
-                    })?;
+                let entity_type =
+                    serde_json::from_value::<EntityType>(serde_json::Value::String(prefix))
+                        .map_err(|_| {
+                            PlaygroundError::DeserializeError(format!(
+                                "Cannot create {id} because it has an invalid type"
+                            ))
+                        })?;
 
                 let entity = get_entity_from_settings(
                     engine,
@@ -789,10 +808,7 @@ fn parse_entities_from_labels(
         .collect::<Result<Vec<_>>>()
 }
 
-fn resolve_names_locally(
-    entities: &mut [ParsedEntity],
-    references: &[ParsedEntity],
-) -> Result<()> {
+fn resolve_names_locally(entities: &mut [ParsedEntity], references: &[ParsedEntity]) -> Result<()> {
     let monitor_ids = assign_ids(
         references,
         entities,
@@ -870,12 +886,9 @@ fn resolve_names_locally(
             let mut tags = tag_names
                 .into_iter()
                 .map(|tag_value| {
-                    let id = tag_ids
-                        .get(&tag_value.name)
-                        .copied()
-                        .ok_or_else(|| {
-                            PlaygroundError::MissingReference("tag", tag_value.name.clone())
-                        })?;
+                    let id = tag_ids.get(&tag_value.name).copied().ok_or_else(|| {
+                        PlaygroundError::MissingReference("tag", tag_value.name.clone())
+                    })?;
 
                     Ok(Tag {
                         tag_id: Some(id),
@@ -891,12 +904,13 @@ fn resolve_names_locally(
 
         if let Monitor::Docker { value } = monitor {
             if let Some(docker_host_name) = value.docker_host_name.clone() {
-                let docker_host_id = docker_host_ids
-                    .get(&docker_host_name)
-                    .copied()
-                    .ok_or_else(|| {
-                        PlaygroundError::MissingReference("docker_host", docker_host_name)
-                    })?;
+                let docker_host_id =
+                    docker_host_ids
+                        .get(&docker_host_name)
+                        .copied()
+                        .ok_or_else(|| {
+                            PlaygroundError::MissingReference("docker_host", docker_host_name)
+                        })?;
 
                 value.docker_host = Some(docker_host_id);
             }
@@ -978,15 +992,17 @@ fn group_by_prefix(
     values: impl IntoIterator<Item = (impl AsRef<str>, impl AsRef<str>)>,
     delimiter: &str,
 ) -> BTreeMap<String, Vec<(String, String)>> {
-    values.into_iter().fold(BTreeMap::new(), |mut groups, (key, value)| {
-        if let Some((prefix, key)) = key.as_ref().split_once(delimiter) {
+    values
+        .into_iter()
+        .fold(BTreeMap::new(), |mut groups, (key, value)| {
+            if let Some((prefix, key)) = key.as_ref().split_once(delimiter) {
+                groups
+                    .entry(prefix.to_owned())
+                    .or_default()
+                    .push((key.to_owned(), value.as_ref().to_owned()));
+            }
             groups
-                .entry(prefix.to_owned())
-                .or_default()
-                .push((key.to_owned(), value.as_ref().to_owned()));
-        }
-        groups
-    })
+        })
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -1005,7 +1021,7 @@ struct ComposeService {
     domainname: Option<String>,
     labels: Option<ComposeLabels>,
     networks: Option<ComposeNetworks>,
-    ports: Option<Vec<ComposePort>>, 
+    ports: Option<Vec<ComposePort>>,
     expose: Option<Vec<ComposeExpose>>,
     volumes: Option<Vec<ComposeVolume>>,
     deploy: Option<ComposeDeploy>,
@@ -1124,12 +1140,18 @@ fn build_system_info(compose: &ComposeFile) -> serde_json::Value {
         obj.insert("ContainersStopped".to_owned(), json!(0));
         obj.insert("Images".to_owned(), json!(image_count));
         obj.insert("Name".to_owned(), json!("autokuma-playground"));
-        obj.insert("OperatingSystem".to_owned(), json!("Docker Compose Mock Host"));
+        obj.insert(
+            "OperatingSystem".to_owned(),
+            json!("Docker Compose Mock Host"),
+        );
         obj.insert("OSVersion".to_owned(), json!("playground"));
-        obj.insert("Labels".to_owned(), json!([
-            "orchestration=docker-compose",
-            format!("services={service_count}"),
-        ]));
+        obj.insert(
+            "Labels".to_owned(),
+            json!([
+                "orchestration=docker-compose",
+                format!("services={service_count}"),
+            ]),
+        );
         obj.insert("ServerVersion".to_owned(), json!("compose-mock"));
     }
 
@@ -1163,7 +1185,10 @@ fn build_container_value(
         obj.insert("Image".to_owned(), json!(image));
         obj.insert("ImageID".to_owned(), json!(image_id));
         obj.insert("Command".to_owned(), json!(command));
-        obj.insert("Created".to_owned(), json!((1739811096 + index as i64).to_string()));
+        obj.insert(
+            "Created".to_owned(),
+            json!((1739811096 + index as i64).to_string()),
+        );
         obj.insert("Labels".to_owned(), json!(labels));
         obj.insert("State".to_owned(), json!("running"));
         obj.insert("Status".to_owned(), json!("Up 1 minute"));
@@ -1204,7 +1229,10 @@ fn build_service_value(
         .unwrap_or(1);
 
     if let Some(obj) = service_value.as_object_mut() {
-        obj.insert("ID".to_owned(), json!(pseudo_digest(&format!("service:{service_name}"), 25)));
+        obj.insert(
+            "ID".to_owned(),
+            json!(pseudo_digest(&format!("service:{service_name}"), 25)),
+        );
         if let Some(spec) = obj.get_mut("Spec").and_then(|value| value.as_object_mut()) {
             spec.insert("Name".to_owned(), json!(service_name));
             spec.insert("Labels".to_owned(), json!(labels));
@@ -1232,7 +1260,10 @@ fn build_service_value(
                 endpoint_spec.insert("Ports".to_owned(), serde_json::Value::Array(ports.clone()));
             }
         }
-        if let Some(endpoint) = obj.get_mut("Endpoint").and_then(|value| value.as_object_mut()) {
+        if let Some(endpoint) = obj
+            .get_mut("Endpoint")
+            .and_then(|value| value.as_object_mut())
+        {
             if let Some(endpoint_spec) = endpoint
                 .get_mut("Spec")
                 .and_then(|value| value.as_object_mut())
@@ -1240,7 +1271,10 @@ fn build_service_value(
                 endpoint_spec.insert("Ports".to_owned(), serde_json::Value::Array(ports.clone()));
             }
             endpoint.insert("Ports".to_owned(), serde_json::Value::Array(ports));
-            endpoint.insert("VirtualIPs".to_owned(), serde_json::Value::Array(virtual_ips));
+            endpoint.insert(
+                "VirtualIPs".to_owned(),
+                serde_json::Value::Array(virtual_ips),
+            );
         }
     }
 
@@ -1348,10 +1382,13 @@ fn build_container_networks(
 
     let mut networks = serde_json::Map::new();
     let host_alias = service.hostname.clone();
-    let fqdn_alias = service.hostname.as_ref().map(|hostname| match service.domainname.as_ref() {
-        Some(domainname) => format!("{hostname}.{domainname}"),
-        None => hostname.clone(),
-    });
+    let fqdn_alias = service
+        .hostname
+        .as_ref()
+        .map(|hostname| match service.domainname.as_ref() {
+            Some(domainname) => format!("{hostname}.{domainname}"),
+            None => hostname.clone(),
+        });
     for (network_index, network) in iterate_networks(service).into_iter().enumerate() {
         let mut value = network_template.clone();
         if let Some(obj) = value.as_object_mut() {
@@ -1363,14 +1400,30 @@ fn build_container_networks(
                 .chain(fqdn_alias.clone())
                 .unique()
                 .collect::<Vec<_>>();
+            obj.insert("Aliases".to_owned(), json!(aliases));
             obj.insert(
-                "Aliases".to_owned(),
-                json!(aliases),
+                "NetworkID".to_owned(),
+                json!(pseudo_digest(&format!("network:{}", network.name), 64)),
             );
-            obj.insert("NetworkID".to_owned(), json!(pseudo_digest(&format!("network:{}", network.name), 64)));
-            obj.insert("EndpointID".to_owned(), json!(pseudo_digest(&format!("endpoint:{service_name}:{}", network.name), 64)));
-            obj.insert("IPAddress".to_owned(), json!(network.ipv4_address.unwrap_or_else(|| fake_ipv4(index + network_index))));
-            obj.insert("GlobalIPv6Address".to_owned(), json!(network.ipv6_address.unwrap_or_else(|| fake_ipv6(index + network_index))));
+            obj.insert(
+                "EndpointID".to_owned(),
+                json!(pseudo_digest(
+                    &format!("endpoint:{service_name}:{}", network.name),
+                    64
+                )),
+            );
+            obj.insert(
+                "IPAddress".to_owned(),
+                json!(network
+                    .ipv4_address
+                    .unwrap_or_else(|| fake_ipv4(index + network_index))),
+            );
+            obj.insert(
+                "GlobalIPv6Address".to_owned(),
+                json!(network
+                    .ipv6_address
+                    .unwrap_or_else(|| fake_ipv6(index + network_index))),
+            );
             obj.insert(
                 "DNSNames".to_owned(),
                 json!(aliases
@@ -1452,7 +1505,9 @@ fn parse_port_mapping(port: &ComposePort) -> Option<ResolvedPort> {
             let parts = raw.split(':').collect::<Vec<_>>();
             let target = parts.last()?.parse::<u16>().ok()?;
             let published = if parts.len() >= 2 {
-                parts.get(parts.len() - 2).and_then(|value| value.parse::<u16>().ok())
+                parts
+                    .get(parts.len() - 2)
+                    .and_then(|value| value.parse::<u16>().ok())
             } else {
                 None
             };
@@ -1494,7 +1549,12 @@ fn parse_volume(volume: &ComposeVolume) -> Option<ResolvedMount> {
                 source,
                 destination,
                 driver: (mount_type == "volume").then_some("local".to_owned()),
-                mode: if config.read_only.unwrap_or(false) { "ro" } else { "rw" }.to_owned(),
+                mode: if config.read_only.unwrap_or(false) {
+                    "ro"
+                } else {
+                    "rw"
+                }
+                .to_owned(),
                 rw: !config.read_only.unwrap_or(false),
             })
         }
@@ -1608,10 +1668,7 @@ label_prefix = "kuma"
 
         let entities = engine.collect_compose_entities(&targets).unwrap();
 
-        let home = entities
-            .iter()
-            .find(|entity| entity.id == "home")
-            .unwrap();
+        let home = entities.iter().find(|entity| entity.id == "home").unwrap();
 
         match &home.entity {
             Entity::Monitor(monitor) => {

@@ -1,6 +1,6 @@
 use crate::utils::{OutputFormat, ResultOrDie as _};
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
-use config::{ConfigBuilder, File, FileFormat, builder::DefaultState};
+use config::{builder::DefaultState, ConfigBuilder, File, FileFormat};
 use kuma_client::{
     build::{LONG_VERSION, SHORT_VERSION},
     config::source::Environment,
@@ -85,7 +85,8 @@ fn load_autokuma_config(mut builder: ConfigBuilder<DefaultState>) -> ConfigBuild
                     if let Ok(config) = $parser(&contents) {
                         if let Some(kuma_config) = config.get("kuma") {
                             if let Ok(kuma_config) = serde_json::to_string(kuma_config) {
-                                builder = builder.add_source(File::from_str(&kuma_config, FileFormat::Json));
+                                builder = builder
+                                    .add_source(File::from_str(&kuma_config, FileFormat::Json));
                             }
                         }
                     }
@@ -95,14 +96,32 @@ fn load_autokuma_config(mut builder: ConfigBuilder<DefaultState>) -> ConfigBuild
     }
 
     if let Some(config_dir) = dirs::config_local_dir().map(|dir| dir.join("kuma").join("config")) {
-        load_from_file!(config_dir.join("autokuma.toml"), toml::from_slice::<serde_json::Value>);
-        load_from_file!(config_dir.join("autokuma.yaml"), serde_yaml::from_slice::<serde_json::Value>);
-        load_from_file!(config_dir.join("autokuma.json"), serde_json::from_slice::<serde_json::Value>);
+        load_from_file!(
+            config_dir.join("autokuma.toml"),
+            toml::from_slice::<serde_json::Value>
+        );
+        load_from_file!(
+            config_dir.join("autokuma.yaml"),
+            serde_yaml::from_slice::<serde_json::Value>
+        );
+        load_from_file!(
+            config_dir.join("autokuma.json"),
+            serde_json::from_slice::<serde_json::Value>
+        );
     }
 
-    load_from_file!(Path::new("autokuma.toml"), toml::from_slice::<serde_json::Value>);
-    load_from_file!(Path::new("autokuma.yaml"), serde_yaml::from_slice::<serde_json::Value>);
-    load_from_file!(Path::new("autokuma.json"), serde_json::from_slice::<serde_json::Value>);
+    load_from_file!(
+        Path::new("autokuma.toml"),
+        toml::from_slice::<serde_json::Value>
+    );
+    load_from_file!(
+        Path::new("autokuma.yaml"),
+        serde_yaml::from_slice::<serde_json::Value>
+    );
+    load_from_file!(
+        Path::new("autokuma.json"),
+        serde_json::from_slice::<serde_json::Value>
+    );
 
     builder = builder.add_source(
         Environment::with_prefix("AUTOKUMA__KUMA")
