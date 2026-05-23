@@ -1,0 +1,77 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.2.3 or 1.2.3-rc.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate version
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+            echo "::error::Invalid version '${{ inputs.version }}'. Expected format: X.Y.Z or X.Y.Z-rc.N"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.COMMIT_KEY }}
+
+      - name: Configure git
+        run: |
+          git config user.email "runner@github.com"
+          git config user.name "GitHub Actions"
+
+      - name: Update Changelog
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python3 << 'EOF'
+          import os
+          import sys
+          from datetime import date
+
+          version = os.environ["VERSION"]
+          today = date.today().strftime("%Y-%m-%d")
+
+          with open("CHANGELOG.md") as f:
+              content = f.read()
+
+          marker = "## [Unreleased]"
+          if marker not in content:
+              print("::error::No '## [Unreleased]' section found in CHANGELOG.md", file=sys.stderr)
+              sys.exit(1)
+
+          new_content = content.replace(
+              marker,
+              f"{marker}\n\n## [{version}] - {today}",
+              1,
+          )
+
+          with open("CHANGELOG.md", "w") as f:
+              f.write(new_content)
+
+          print(f"Updated CHANGELOG.md: added [Unreleased] → [{version}] - {today}")
+          EOF
+
+      - name: Commit Changelog
+        run: |
+          git add CHANGELOG.md
+          git commit -m "chore: release v${{ inputs.version }}"
+
+      - name: Tag and push
+        run: |
+          git tag "v${{ inputs.version }}"
+          git push --atomic origin HEAD:refs/heads/${{ github.ref_name }} "refs/tags/v${{ inputs.version }}"

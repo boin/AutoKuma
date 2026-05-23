@@ -110,6 +110,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.description }}
           files: dist/*
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   crates-io:
     needs: [build]
