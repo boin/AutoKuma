@@ -770,7 +770,6 @@ impl Worker {
         }
 
         let tags = mem::take(monitor.common_mut().tags_mut());
-        let notifications = mem::take(monitor.common_mut().notification_id_list_mut());
 
         #[cfg(feature = "private-api")]
         let parent_name = mem::take(monitor.common_mut().parent_name_mut());
@@ -799,8 +798,6 @@ impl Worker {
             .await?;
 
         *monitor.common_mut().id_mut() = Some(id);
-        *monitor.common_mut().notification_id_list_mut() = notifications;
-        *monitor.common_mut().tags_mut() = tags;
 
         #[cfg(feature = "private-api")]
         {
@@ -816,7 +813,9 @@ impl Worker {
             *monitor.common_mut().tag_names_mut() = tag_names;
         }
 
-        self.edit_monitor(monitor, false).await?;
+        self.update_monitor_tags(id, &tags).await?;
+
+        *monitor.common_mut().tags_mut() = tags;
 
         self.monitors
             .lock()

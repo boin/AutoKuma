@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for `retry_only_on_status_code_failure` on `json-query` monitors, see #172
 
 ### Fixed
+- Fix SQLite UNIQUE constraint violation on `stat_hourly` caused by a double monitor restart when creating monitors with tags or notifications — notifications are now sent in the initial `add` call and tags are applied directly without a follow-up `editMonitor`, see #166
 - Fix autokuma trying to use itself as a config file, see #149
 - Fix resend_interval missing for most monitor types, see #152
 - Fix duplicate monitor creation caused by `db.clean()` racing against a stale WebSocket cache snapshot when creating many monitors in a batch, see #177
