@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix SQLite UNIQUE constraint violation on `stat_hourly` caused by a double monitor restart when creating monitors with tags or notifications — notifications are now sent in the initial `add` call and tags are applied directly without a follow-up `editMonitor`, see #166
+- Fix type-specific default settings (e.g. `group.notification_name_list`) not overriding wildcard defaults (e.g. `*.notification_name_list`), see #175
 
 ## [2.1.0-rc.1] - 2026-05-23
 ### Changed

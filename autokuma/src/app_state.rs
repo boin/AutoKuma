@@ -592,8 +592,8 @@ impl AppState {
 
     pub fn get_defaults(&self, monitor_type: impl AsRef<str>) -> Vec<(String, serde_json::Value)> {
         vec![
-            self.defaults.get("*"),
             self.defaults.get(monitor_type.as_ref()),
+            self.defaults.get("*"),
         ]
         .into_iter()
         .flat_map(|defaults| {
