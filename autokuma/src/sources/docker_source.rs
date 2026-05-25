@@ -242,23 +242,38 @@ impl Source for DockerSource {
             if self.state.config.docker.source == config::DockerSource::Containers
                 || self.state.config.docker.source == config::DockerSource::Both
             {
-                let containers = get_kuma_containers(self.state.clone(), &docker).await?;
-                entities.extend(get_entities_from_containers(
-                    self.state.clone(),
-                    &system_info,
-                    &containers,
-                )?);
+                match get_kuma_containers(self.state.clone(), &docker).await {
+                    Ok(containers) => {
+                        entities.extend(get_entities_from_containers(
+                            self.state.clone(),
+                            &system_info,
+                            &containers,
+                        )?);
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to list Docker containers: {}", e);
+                    }
+                }
             }
 
             if self.state.config.docker.source == config::DockerSource::Services
                 || self.state.config.docker.source == config::DockerSource::Both
             {
-                let services = get_kuma_services(self.state.clone(), &docker).await?;
-                entities.extend(get_entities_from_services(
-                    self.state.clone(),
-                    &system_info,
-                    &services,
-                )?);
+                match get_kuma_services(self.state.clone(), &docker).await {
+                    Ok(services) => {
+                        entities.extend(get_entities_from_services(
+                            self.state.clone(),
+                            &system_info,
+                            &services,
+                        )?);
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Failed to list Docker services (is this a Swarm node?): {}",
+                            e
+                        );
+                    }
+                }
             }
         }
 
