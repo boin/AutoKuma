@@ -34,6 +34,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote add docs git@github.com:BigBoot/AutoKuma-docs.git
+          git fetch docs gh-pages:gh-pages || true
 
       - name: Deploy dev (master branch)
         if: github.ref == 'refs/heads/master'
