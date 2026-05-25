@@ -1,6 +1,6 @@
 [project]
 site_name = "AutoKuma"
-site_url = "https://bigboot.github.io/AutoKuma-docs/"
+site_url = "https://autokuma.bigboot.dev/"
 site_description = "Automate Uptime Kuma monitor management using Docker labels, files, and more."
 repo_name = "BigBoot/AutoKuma"
 repo_url = "https://github.com/BigBoot/AutoKuma"
