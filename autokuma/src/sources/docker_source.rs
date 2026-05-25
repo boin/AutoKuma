@@ -4,7 +4,7 @@ use crate::{
     entity::{Entity, get_entities_from_labels},
     error::Result,
     kuma::get_kuma_labels,
-    sources::source::Source,
+    sources::{CONTEXT_KEY, source::Source},
 };
 use async_trait::async_trait;
 use bollard::{
@@ -137,6 +137,14 @@ fn get_entities_from_containers(
 
             template_values.insert("container", &container);
             template_values.insert("system_info", system_info);
+            template_values.insert(
+                CONTEXT_KEY,
+                &container
+                    .names
+                    .as_ref()
+                    .and_then(|names| names.first().map(|s| s.trim_start_matches("/").to_owned()))
+                    .unwrap_or_else(|| "unknown".to_owned()),
+            );
 
             let kuma_labels = get_kuma_labels(&state, container.labels.as_ref(), &template_values)?;
 
@@ -156,11 +164,17 @@ fn get_entities_from_services(
         .map(|service| {
             let mut template_values = tera::Context::new();
 
-            template_values.insert("service", &service);
-            template_values.insert("system_info", system_info);
-
             let spec = service.spec.as_ref();
             let labels = spec.and_then(|spec| spec.labels.as_ref());
+
+            template_values.insert("service", &service);
+            template_values.insert("system_info", system_info);
+            template_values.insert(
+                CONTEXT_KEY,
+                &spec
+                    .and_then(|spec| spec.name.as_deref())
+                    .unwrap_or("unknown"),
+            );
 
             let kuma_labels = get_kuma_labels(&state, labels, &template_values)?;
 

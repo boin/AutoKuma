@@ -2,6 +2,7 @@ use crate::{
     app_state::AppState,
     error::{Error, Result},
     name::Name,
+    sources::CONTEXT_KEY,
     util::{fill_templates, group_by_prefix, FlattenValue},
 };
 use itertools::Itertools;
@@ -264,6 +265,11 @@ pub fn get_entities_from_labels(
     labels: Vec<(String, String)>,
     template_values: &tera::Context,
 ) -> Result<Vec<(String, Entity)>> {
+    let context_name = template_values
+        .get(CONTEXT_KEY)
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+
     let entries = labels
         .iter()
         .flat_map(|(key, value)| {
@@ -281,7 +287,10 @@ pub fn get_entities_from_labels(
                 } else {
                     serde_json::from_str::<Vec<serde_json::Value>>(&format!("[{}]", value))
                         .log_warn(std::module_path!(), |e| {
-                            format!("Error while parsing snippet arguments: {}", e.to_string())
+                            format!(
+                                "Error while parsing snippet arguments for '{}' on '{}': {}",
+                                key, context_name, e
+                            )
                         })
                         .ok()
                 };

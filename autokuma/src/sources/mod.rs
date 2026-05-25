@@ -9,6 +9,8 @@ pub mod source;
 #[cfg(feature = "kubernetes")]
 pub mod kubernetes_source;
 
+pub const CONTEXT_KEY: &str = "__autokuma_context";
+
 pub fn get_sources(state: Arc<AppState>) -> Vec<Box<dyn source::Source>> {
     let mut sources: Vec<Box<dyn source::Source>> = vec![];
 
