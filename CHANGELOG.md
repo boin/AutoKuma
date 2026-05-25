@@ -6,10 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
-## [2.1.0-rc.1]
 ### Added
-- Add `/health` and `/metrics` (Prometheus-compatible) HTTP endpoints, with a `HEALTHCHECK` in the Dockerfile, see #164. Listens on port 8090 by default (configurable via `healthcheck_port`, set to `null` to disable) - 2026-05-23
+- Add `/health` and `/metrics` (Prometheus-compatible) HTTP endpoints, with a `HEALTHCHECK` in the Dockerfile, see #164. Listens on port 8090 by default (configurable via `healthcheck_port`, set to `null` to disable)
+
+### Fixed
+- Fix SQLite UNIQUE constraint violation on `stat_hourly` caused by a double monitor restart when creating monitors with tags or notifications — notifications are now sent in the initial `add` call and tags are applied directly without a follow-up `editMonitor`, see #166
+
+## [2.1.0-rc.1] - 2026-05-23
 ### Changed
 - The kuma cli will automatically pick up an existing autokuma config so it's possible to use a shared config. (This works for both env variable config as well as config files) 
 
@@ -22,7 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for `retry_only_on_status_code_failure` on `json-query` monitors, see #172
 
 ### Fixed
-- Fix SQLite UNIQUE constraint violation on `stat_hourly` caused by a double monitor restart when creating monitors with tags or notifications — notifications are now sent in the initial `add` call and tags are applied directly without a follow-up `editMonitor`, see #166
 - Fix autokuma trying to use itself as a config file, see #149
 - Fix resend_interval missing for most monitor types, see #152
 - Fix duplicate monitor creation caused by `db.clean()` racing against a stale WebSocket cache snapshot when creating many monitors in a batch, see #177
