@@ -1,4 +1,5 @@
 /target
+/site
 */dist
 config.toml
 autokuma.toml
