@@ -21,7 +21,7 @@ spec:
           spec:
             properties:
               config:
-                additionalProperties: true
+                x-kubernetes-preserve-unknown-fields: true
                 type: object
             required:
             - config
