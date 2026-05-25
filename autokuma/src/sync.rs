@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
-use crate::entity::{merge_entities, Entity};
+use crate::entity::{Entity, merge_entities};
 use crate::kuma::get_managed_entities;
+use crate::metrics::{Metrics, entity_type_index};
 use crate::name::{EntitySelector, Name};
 use crate::{
     config::{Config, DeleteBehavior},
@@ -12,6 +13,7 @@ use itertools::Itertools;
 use kuma_client::{util::ResultLogger, Client};
 use log::{debug, error, info, trace, warn};
 use std::collections::HashSet;
+use std::time::Instant;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 pub struct Sync {
@@ -19,16 +21,18 @@ pub struct Sync {
     auth_token: Option<String>,
     sources: Vec<Box<dyn Source>>,
     client: Option<Arc<Client>>,
+    metrics: Arc<Metrics>,
 }
 
 impl Sync {
-    pub fn new(config: Arc<Config>) -> Result<Self> {
+    pub fn new(config: Arc<Config>, metrics: Arc<Metrics>) -> Result<Self> {
         let state = Arc::new(AppState::new(config)?);
         Ok(Self {
             app_state: state.clone(),
             auth_token: state.config.kuma.auth_token.clone(),
             sources: crate::sources::get_sources(state),
             client: None,
+            metrics,
         })
     }
 
@@ -229,6 +233,18 @@ impl Sync {
     }
 
     async fn do_sync(&mut self) -> Result<()> {
+        let start = Instant::now();
+        let result = self.do_sync_inner().await;
+        match &result {
+            Ok(()) => self.metrics.record_sync_success(start.elapsed()),
+            Err(err) => self
+                .metrics
+                .record_sync_error(Self::is_connection_error(err)),
+        }
+        result
+    }
+
+    async fn do_sync_inner(&mut self) -> Result<()> {
         let kuma = self.get_connection().await?;
 
         self.app_state.db.migrate(&self.app_state, &kuma).await?;
@@ -269,21 +285,29 @@ impl Sync {
             .collect_vec();
 
         for (id, entity) in to_create {
-            let _ = self
+            if self
                 .create_entity(&kuma, id, entity)
                 .await
                 .log_warn(std::module_path!(), |e| {
                     format!("Failed to create '{}': {}", id, e)
-                });
+                })
+                .is_ok()
+            {
+                self.metrics.inc_created(entity);
+            }
         }
 
         for (id, current, new) in to_update {
-            let _ = self
+            if self
                 .update_entity(&kuma, id, current, new)
                 .await
                 .log_warn(std::module_path!(), |e| {
                     format!("Failed to update '{}': {}", id, e)
-                });
+                })
+                .is_ok()
+            {
+                self.metrics.inc_updated(new);
+            }
         }
 
         if self.app_state.config.on_delete == DeleteBehavior::Delete {
@@ -317,12 +341,23 @@ impl Sync {
                 continue;
             }
 
-            let _ = self
+            let deleted_entity = to_delete
+                .iter()
+                .find(|(id, _)| **id == name)
+                .map(|(_, e)| *e);
+
+            if self
                 .delete_entity_by_id(&kuma, entity)
                 .await
                 .log_warn(std::module_path!(), |e| {
                     format!("Failed to delete '{}': {}", name, e)
-                });
+                })
+                .is_ok()
+            {
+                if let Some(entity) = deleted_entity {
+                    self.metrics.inc_deleted(entity);
+                }
+            }
         }
 
         self.app_state.db.clean(
@@ -357,6 +392,16 @@ impl Sync {
                 .filter_map(|(_, status_page)| status_page.slug)
                 .collect::<HashSet<_>>(),
         )?;
+
+        // Update managed entity counts from new_entities (desired state after sync)
+        let mut managed = [0i64; 5];
+        for entity in new_entities.values() {
+            managed[entity_type_index(entity)] += 1;
+        }
+        self.metrics.set_managed_counts(managed);
+        self.metrics
+            .pending_deletion
+            .store(self.app_state.db.pending_deletion_count() as i64, std::sync::atomic::Ordering::Relaxed);
 
         Ok(())
     }

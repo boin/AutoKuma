@@ -26,6 +26,7 @@ kuma-client = { path = "../kuma-client", version = "0.0.0", features = [
     "private-api",
 ] }
 
+axum = { workspace = true }
 async-trait = { workspace = true }
 postcard = { workspace = true }
 bollard = { workspace = true }

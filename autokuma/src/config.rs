@@ -2,7 +2,7 @@ use kuma_client::deserialize::DeserializeVecLenient;
 use serde::{Deserialize, Serialize};
 use serde_alias::serde_alias;
 use serde_inline_default::serde_inline_default;
-use serde_with::{DeserializeAs, PickFirst, SerializeAs, StringWithSeparator, formats::SemicolonSeparator, serde_as};
+use serde_with::{DeserializeAs, NoneAsEmptyString, PickFirst, SerializeAs, StringWithSeparator, formats::SemicolonSeparator, serde_as};
 use std::collections::HashMap;
 
 /// Intermediate form used when deserializing the `snippets` map.
@@ -221,6 +221,7 @@ pub enum DeleteBehavior {
 
 #[serde_alias(ScreamingSnakeCase)]
 #[serde_inline_default]
+#[serde_as]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub kuma: kuma_client::Config,
@@ -275,7 +276,13 @@ pub struct Config {
     /// Allow access to all env variables in templates, by default only variables starting with AUTOKUMA__ENV__ can be accessed.
     #[serde_inline_default(false)]
     pub insecure_env_access: bool,
+
+    /// Port for the health check and metrics HTTP server. Set to null or empty string to disable.
+    #[serde_inline_default(Some(8090u16))]
+    #[serde_as(as = "PickFirst<(_, NoneAsEmptyString)>")]
+    pub healthcheck_port: Option<u16>,
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -383,6 +390,7 @@ mod tests {
             ("AUTOKUMA__SNIPPETS__ping", "packet_size=64"),
             ("AUTOKUMA__LOG_DIR", "/var/log/autokuma"),
             ("AUTOKUMA__INSECURE_ENV_ACCESS", "true"),
+            ("AUTOKUMA__HEALTHCHECK_PORT", "8091"),
         ]
     }
 
@@ -706,6 +714,7 @@ mod tests {
         );
         assert_eq!(parsed.log_dir.as_deref(), Some("/var/log/autokuma"));
         assert!(parsed.insecure_env_access);
+        assert_eq!(parsed.healthcheck_port, Some(8091));
     }
 
     #[test]
@@ -764,7 +773,8 @@ mod tests {
                     "ping": "packet_size=64"
                 },
                 "log_dir": "/var/log/autokuma",
-                "insecure_env_access": true
+                "insecure_env_access": true,
+                "healthcheck_port": 8091
             }"##,
             FileFormat::Json,
         );
@@ -786,6 +796,7 @@ mod tests {
             default_settings = "max_retries=3"
             log_dir = "/var/log/autokuma"
             insecure_env_access = true
+            healthcheck_port = 8091
 
             [kuma]
             url = "http://all.local:3001"
@@ -929,7 +940,8 @@ mod tests {
                                 "ping": "packet_size=64"
                             },
                             "log_dir": "/var/log/autokuma",
-                            "insecure_env_access": true
+                            "insecure_env_access": true,
+                            "healthcheck_port": 8091
                         }
             "##,
             FileFormat::Yaml,
@@ -944,6 +956,14 @@ mod tests {
         let parsed = parse_from_environment(&vars);
 
         assert_all_settings(&parsed, false);
+    }
+
+    #[test]
+    fn healthcheck_port_disabled_by_empty_string_env_var() {
+        let parsed = parse_from_environment(&base_env_vars_with(&[
+            ("AUTOKUMA__HEALTHCHECK_PORT", ""),
+        ]));
+        assert_eq!(parsed.healthcheck_port, None);
     }
 
     #[test]

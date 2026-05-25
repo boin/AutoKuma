@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.1.0-rc.1] - 2026-05-23
+## [2.1.0-rc.1]
+### Added
+- Add `/health` and `/metrics` (Prometheus-compatible) HTTP endpoints, with a `HEALTHCHECK` in the Dockerfile, see #164. Listens on port 8090 by default (configurable via `healthcheck_port`, set to `null` to disable) - 2026-05-23
 ### Changed
 - The kuma cli will automatically pick up an existing autokuma config so it's possible to use a shared config. (This works for both env variable config as well as config files) 
 

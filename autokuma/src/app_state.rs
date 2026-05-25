@@ -471,6 +471,10 @@ impl AppDB {
         Self::get_entries(&self.tables.tags)
     }
 
+    pub fn pending_deletion_count(&self) -> usize {
+        self.tables.to_delete.tree.len()
+    }
+
     pub fn get_status_pages(&self) -> Result<Vec<(String, String)>> {
         Self::get_entries(&self.tables.status_pages)
     }

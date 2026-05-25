@@ -223,11 +223,15 @@ async fn main() {
 
     let logger = create_logger(&config);
 
+    let metrics = std::sync::Arc::new(metrics::Metrics::new());
+
     println!("{}{:>70}", BANNER, SHORT_VERSION);
 
-    let mut sync = sync::Sync::new(config)
+    let mut sync = sync::Sync::new(config.clone(), metrics.clone())
         .log_error(std::module_path!(), |e| format!("Invalid config: {}", e))
         .unwrap_or_die(1);
+
+    tokio::spawn(server::start_server(config, metrics));
 
     sync.run().await;
 
