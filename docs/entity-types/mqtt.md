@@ -17,9 +17,9 @@ MQTT broker monitor. Subscribes to a topic and checks for an expected message or
 | `interval` | `60` | Check interval in seconds |
 | `hostname` | `localhost` | MQTT broker hostname |
 | `json_path` | `$.status` | JSON path to extract from the message |
-| `json_path_operator` | `eq` | Comparison operator |
+| `json_path_operator` | `==` | Comparison operator (`>`, `>=`, `<`, `<=`, `!=`, `==`, `contains`) |
 | `max_retries` | `0` | Maximum retries |
-| `mqtt_check_type` | `keyword` | Check type |
+| `mqtt_check_type` | `keyword` | Check type (`keyword`, `json-query`) |
 | `mqtt_password` | `mqtt-pass` | MQTT broker password |
 | `mqtt_success_message` | `online` | Expected success message |
 | `mqtt_topic` | `sensors/status` | MQTT topic to subscribe to |

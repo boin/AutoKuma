@@ -12,7 +12,7 @@ HTTP/HTTPS monitor. The most common monitor type. Fetches a URL and checks the r
 |----------|---------|-------------|
 | `accepted_statuscodes` | `200-299` | Accepted HTTP status codes |
 | `active` | `true` | Whether the monitor is active |
-| `authMethod` | `basic` | Authentication method (`basic`, `ntlm`, `oauth`) |
+| `authMethod` | `basic` | Authentication method (`null`, `basic`, `oauth2-cc`, `ntlm`, `mtls`) |
 | `basic_auth_user` | `monitor` | Basic auth username |
 | `basic_auth_pass` | `secret` | Basic auth password |
 | `oauth_auth_method` | `client_secret_basic` | OAuth method |
@@ -30,7 +30,7 @@ HTTP/HTTPS monitor. The most common monitor type. Fetches a URL and checks the r
 | `description` | `A Monitor` | Monitor description |
 | `expiry_notification` | `true` | Notify on TLS certificate expiry |
 | `headers` | `{"X-Api-Key":"secret"}` | Custom request headers (JSON) |
-| `http_body_encoding` | `json` | Body encoding |
+| `http_body_encoding` | `json` | Body encoding (`json`, `form`, `xml`) |
 | `ignore_tls` | `false` | Ignore TLS errors |
 | `interval` | `60` | Check interval in seconds |
 | `max_redirects` | `10` | Maximum number of redirects to follow |

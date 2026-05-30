@@ -12,7 +12,7 @@ Global monitoring via [Globalping](https://globalping.io/). Runs checks from mul
 |----------|---------|-------------|
 | `accepted_statuscodes` | `200-299` | Accepted HTTP status codes |
 | `active` | `true` | Whether the monitor is active |
-| `authMethod` | `basic` | Authentication method |
+| `authMethod` | `basic` | Authentication method (`null`, `basic`, `oauth2-cc`, `ntlm`, `mtls`) |
 | `basic_auth_user` | `monitor` | Basic auth username |
 | `basic_auth_pass` | `secret` | Basic auth password |
 | `oauth_auth_method` | `client_secret_basic` | OAuth method |
@@ -31,7 +31,7 @@ Global monitoring via [Globalping](https://globalping.io/). Runs checks from mul
 | `hostname` | `example.com` | Target hostname |
 | `ignore_tls` | `false` | Ignore TLS errors |
 | `interval` | `60` | Check interval in seconds |
-| `ip_family` | `ipv4` | IP family to use |
+| `ip_family` | `ipv4` | IP family to use (`ipv4`, `ipv6`) |
 | `json_path` | `$.status` | JSON path for assertion |
 | `json_path_operator` | `==` | JSON path comparison operator |
 | `keyword` | `healthy` | Keyword to search for |
@@ -45,6 +45,6 @@ Global monitoring via [Globalping](https://globalping.io/). Runs checks from mul
 | `port` | `80` | Target port |
 | `protocol` | `ICMP` | Protocol to use |
 | `retry_interval` | `60` | Interval between retries in seconds |
-| `subtype` | `ping` | Check subtype |
+| `subtype` | `ping` | Check subtype (`ping`, `http`, `dns`) |
 | `upside_down` | `false` | Invert the status |
 | `url` | `https://example.com` | Target URL |

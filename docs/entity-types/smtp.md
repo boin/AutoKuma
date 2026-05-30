@@ -19,7 +19,7 @@ SMTP server availability monitor. Connects to an SMTP server and checks that it 
 | `name` | `Example` | Monitor display name |
 | `parent` | `0` | Parent group ID |
 | `port` | `25` | SMTP server port |
-| `security` | `none` | Connection security (`none`, `starttls`, `tls`) |
+| `security` | `nostarttls` | Connection security (`secure`, `nostarttls`, `starttls`) |
 | `retry_interval` | `60` | Interval between retries in seconds |
 | `upside_down` | `false` | Invert the status |
 

@@ -17,7 +17,7 @@ SNMP OID monitor. Queries an SNMP agent for an OID value and compares it against
 | `hostname` | `localhost` | SNMP agent hostname |
 | `interval` | `60` | Check interval in seconds |
 | `json_path` | `$.value` | JSON path to extract the value |
-| `json_path_operator` | `eq` | Comparison operator |
+| `json_path_operator` | `==` | Comparison operator (`>`, `>=`, `<`, `<=`, `!=`, `==`, `contains`) |
 | `max_retries` | `0` | Maximum retries |
 | `name` | `Example` | Monitor display name |
 | `oid` | `1.3.6.1.2.1.1.3.0` | OID to query |
@@ -26,7 +26,7 @@ SNMP OID monitor. Queries an SNMP agent for an OID value and compares it against
 | `port` | `161` | SNMP agent port |
 | `retry_interval` | `60` | Interval between retries in seconds |
 | `upside_down` | `false` | Invert the status |
-| `version` | `v2c` | SNMP version (`v1`, `v2c`, `v3`) |
+| `version` | `2c` | SNMP version (`1`, `2c`) |
 
 ## Example
 
@@ -35,6 +35,6 @@ labels:
   kuma.switch.snmp.name: "Network Switch"
   kuma.switch.snmp.hostname: "switch.example.com"
   kuma.switch.snmp.oid: "1.3.6.1.2.1.1.3.0"
-  kuma.switch.snmp.version: "v2c"
+  kuma.switch.snmp.version: "2c"
   kuma.switch.snmp.radius_password: "public"
 ```

@@ -30,11 +30,11 @@ HTTP monitor that fetches a URL and asserts a JSON path expression against the r
 | `expected_value` | `up` | Expected value of the JSON path result |
 | `expiry_notification` | `true` | Notify on TLS certificate expiry |
 | `headers` | `{"X-Api-Key":"secret"}` | Custom request headers |
-| `http_body_encoding` | `json` | Body encoding |
+| `http_body_encoding` | `json` | Body encoding (`json`, `form`, `xml`) |
 | `ignore_tls` | `false` | Ignore TLS errors |
 | `interval` | `60` | Check interval in seconds |
 | `json_path` | `$.status` | JSON path expression |
-| `json_path_operator` | `eq` | Comparison operator |
+| `json_path_operator` | `==` | Comparison operator (`>`, `>=`, `<`, `<=`, `!=`, `==`, `contains`) |
 | `max_redirects` | `10` | Maximum redirects |
 | `max_retries` | `0` | Maximum retries |
 | `method` | `GET` | HTTP method |
@@ -53,6 +53,6 @@ labels:
   kuma.api-health.json-query.name: "API Health"
   kuma.api-health.json-query.url: "https://api.example.com/health"
   kuma.api-health.json-query.json_path: "$.status"
-  kuma.api-health.json-query.json_path_operator: "eq"
+  kuma.api-health.json-query.json_path_operator: "=="
   kuma.api-health.json-query.expected_value: "ok"
 ```
