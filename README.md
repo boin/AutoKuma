@@ -18,7 +18,7 @@
             &nbsp&nbsp
             <a href="#kuma-client--">Kuma Client</a>
             &nbsp&nbsp
-            <a href="https://autokuma.bigboot.dev/">Documentation</a>
+            <a href="https://autokuma.bigboot.dev/dev/">Documentation</a>
             &nbsp&nbsp
             <a href="https://autokuma-playground.bigboot.dev">Playground</a>
         </b>
@@ -74,7 +74,7 @@ labels:
 
 AutoKuma picks up the labels and creates the monitor in Uptime Kuma automatically.
 
-For full installation options (prebuilt binaries, platforms, dev builds) see the [Installation docs](https://autokuma.bigboot.dev/autokuma/installation/).
+For full installation options (prebuilt binaries, platforms, dev builds) see the [Installation docs](https://autokuma.bigboot.dev/dev/autokuma/installation/).
 
 ## Usage 💡
 
@@ -89,7 +89,7 @@ Labels follow this format:
 - `<type>` - The monitor type (e.g. `http`, `ping`, `dns`).
 - `<setting>` - The property to set.
 
-The docs cover everything else: [groups](https://autokuma.bigboot.dev/autokuma/usage/#groups), [notifications](https://autokuma.bigboot.dev/autokuma/usage/#notifications), [tags](https://autokuma.bigboot.dev/autokuma/usage/#tags), [templating](https://autokuma.bigboot.dev/autokuma/templating/), [snippets](https://autokuma.bigboot.dev/autokuma/snippets/), [static monitors](https://autokuma.bigboot.dev/autokuma/static-monitors/), and all [entity types](https://autokuma.bigboot.dev/entity-types/).
+The docs cover everything else: [groups](https://autokuma.bigboot.dev/dev/autokuma/usage/#groups), [notifications](https://autokuma.bigboot.dev/dev/autokuma/usage/#notifications), [tags](https://autokuma.bigboot.dev/dev/autokuma/usage/#tags), [templating](https://autokuma.bigboot.dev/dev/autokuma/templating/), [snippets](https://autokuma.bigboot.dev/dev/autokuma/snippets/), [static monitors](https://autokuma.bigboot.dev/dev/autokuma/static-monitors/), and all [entity types](https://autokuma.bigboot.dev/dev/entity-types/).
 
 ## Configuration 🔧
 
@@ -101,7 +101,7 @@ AUTOKUMA__KUMA__USERNAME=<username>
 AUTOKUMA__KUMA__PASSWORD=<password>
 ```
 
-See the [Configuration docs](https://autokuma.bigboot.dev/autokuma/configuration/) for the full reference, including TLS, Docker host options, secret files, and config file locations.
+See the [Configuration docs](https://autokuma.bigboot.dev/dev/autokuma/configuration/) for the full reference, including TLS, Docker host options, secret files, and config file locations.
 
 
 # Kuma CLI 🤖 <a href="https://crates.io/crates/kuma-cli"><img alt="Crates.io Version" src="https://img.shields.io/crates/v/kuma-cli?logo=rust&color=blue"></a> [![kuma](https://snapcraft.io/kuma/badge.svg)](https://snapcraft.io/kuma)
@@ -129,7 +129,7 @@ sudo snap install kuma
 cargo install --git https://github.com/BigBoot/AutoKuma.git kuma-cli
 ```
 
-See the [Kuma CLI docs](https://autokuma.bigboot.dev/kuma-cli/) for usage, all options, and configuration.
+See the [Kuma CLI docs](https://autokuma.bigboot.dev/dev/kuma-cli/) for usage, all options, and configuration.
 
 
 # Kuma Client 🧑‍💻 <a href="https://crates.io/crates/kuma-client"><img alt="Crates.io Version" src="https://img.shields.io/crates/v/kuma-client?logo=rust&color=blue"></a>
