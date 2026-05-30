@@ -1,5 +1,36 @@
 {% extends "base.html" %}
 
+{% block announce %}
+  <div id="autokuma-dev-warning" style="display:none">
+    This is the <strong>dev (unstable)</strong> version of this documentation, which may document
+    features not available in or compatible with released stable versions of AutoKuma.
+    <a id="autokuma-dev-warning-link" href="#">
+      <strong>See the stable version of this documentation page instead.</strong>
+    </a>
+  </div>
+  <script>
+    (function () {
+      var m = window.location.pathname.match(/\/dev\/(.*)/);
+      if (m) {
+        document.getElementById("autokuma-dev-warning").style.display = "";
+        document.getElementById("autokuma-dev-warning-link").href =
+          window.location.origin + "/latest/" + m[1];
+      }
+    })();
+  </script>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    if (window.location.pathname.match(/\/dev\//)) {
+      var style = document.createElement('style');
+      style.textContent = '[data-md-component=outdated]{display:none!important}';
+      document.head.appendChild(style);
+    }
+  </script>
+  {{ super() }}
+{% endblock %}
+
 {% block outdated %}
   You're not viewing the latest version.
   <a href="{{ '../' ~ base_url }}">

@@ -51,6 +51,7 @@ nav = [
 ]
 
 [project.theme]
+custom_dir = "docs/overrides"
 variant = "modern"
 
 [[project.theme.palette]]
