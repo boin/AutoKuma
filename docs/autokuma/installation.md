@@ -1,5 +1,6 @@
 ---
 icon: lucide/package-open
+render_macros: true
 ---
 
 # Installation
@@ -9,18 +10,28 @@ icon: lucide/package-open
 AutoKuma is available as a Docker image on the [GitHub Container Registry](https://github.com/BigBoot/AutoKuma/pkgs/container/autokuma).
 
 ```bash
-# For Uptime Kuma V2
-docker pull ghcr.io/bigboot/autokuma:latest
-
-# For Uptime Kuma V1
-docker pull ghcr.io/bigboot/autokuma:uptime-kuma-v1-latest
+docker pull ghcr.io/bigboot/autokuma:{{ autokuma_latest_release }}
 ```
+
+!!! tip "Using the `latest` tag"
+    You can also use the `latest` tag, which always points to the most recent stable release. However, a versioned tag like `{{ autokuma_latest_release }}` is preferred - it ensures reproducible deployments and keeps you in explicit control of when to update.
+
+    ```bash
+    docker pull ghcr.io/bigboot/autokuma:latest
+    ```
 
 !!! warning "Dev builds"
     Development builds (`master` tag) may contain breaking changes without warning. Do not use them in production.
 
     ```bash
     docker pull ghcr.io/bigboot/autokuma:master
+    ```
+
+??? note "Uptime Kuma V1"
+    For Uptime Kuma V1, use the following image instead:
+
+    ```bash
+    docker pull ghcr.io/bigboot/autokuma:uptime-kuma-v1-latest
     ```
 
 ## Docker Compose
@@ -32,7 +43,7 @@ version: '3'
 
 services:
   autokuma:
-    image: ghcr.io/bigboot/autokuma:latest
+    image: ghcr.io/bigboot/autokuma:{{ autokuma_latest_release }}
     restart: unless-stopped
     environment:
       AUTOKUMA__KUMA__URL: http://uptime-kuma:3001

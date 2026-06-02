@@ -7,47 +7,47 @@ repo_url = "https://github.com/BigBoot/AutoKuma"
 docs_dir = "docs"
 
 nav = [
-  {"Home" = "index.md"},
-  {"AutoKuma" = [
-    {"Overview" = "autokuma/index.md"},
-    {"Installation" = "autokuma/installation.md"},
-    {"Configuration" = "autokuma/configuration.md"},
-    {"Usage" = "autokuma/usage.md"},
-    {"Templating" = "autokuma/templating.md"},
-    {"Snippets" = "autokuma/snippets.md"},
-    {"Static Monitors" = "autokuma/static-monitors.md"},
-  ]},
-  {"Entity Types" = [
-    {"Overview" = "entity-types/index.md"},
-    {"dns" = "entity-types/dns.md"},
-    {"docker" = "entity-types/docker.md"},
-    {"gamedig" = "entity-types/gamedig.md"},
-    {"globalping" = "entity-types/globalping.md"},
-    {"group" = "entity-types/group.md"},
-    {"grpc-keyword" = "entity-types/grpc-keyword.md"},
-    {"http" = "entity-types/http.md"},
-    {"json-query" = "entity-types/json-query.md"},
-    {"kafka-producer" = "entity-types/kafka-producer.md"},
-    {"keyword" = "entity-types/keyword.md"},
-    {"mongodb" = "entity-types/mongodb.md"},
-    {"mqtt" = "entity-types/mqtt.md"},
-    {"mysql" = "entity-types/mysql.md"},
-    {"ping" = "entity-types/ping.md"},
-    {"port" = "entity-types/port.md"},
-    {"postgres" = "entity-types/postgres.md"},
-    {"push" = "entity-types/push.md"},
-    {"radius" = "entity-types/radius.md"},
-    {"real-browser" = "entity-types/real-browser.md"},
-    {"redis" = "entity-types/redis.md"},
-    {"steam" = "entity-types/steam.md"},
-    {"sqlserver" = "entity-types/sqlserver.md"},
-    {"tailscale-ping" = "entity-types/tailscale-ping.md"},
-    {"smtp" = "entity-types/smtp.md"},
-    {"snmp" = "entity-types/snmp.md"},
-    {"rabbitmq" = "entity-types/rabbitmq.md"},
-  ]},
-  {"Kuma CLI" = "kuma-cli.md"},
-  {"Kuma Client" = "kuma-client.md"},
+  { "Home" = "index.md" },
+  { "AutoKuma" = [
+    { "Overview" = "autokuma/index.md" },
+    { "Installation" = "autokuma/installation.md" },
+    { "Configuration" = "autokuma/configuration.md" },
+    { "Usage" = "autokuma/usage.md" },
+    { "Templating" = "autokuma/templating.md" },
+    { "Snippets" = "autokuma/snippets.md" },
+    { "Static Monitors" = "autokuma/static-monitors.md" },
+  ] },
+  { "Entity Types" = [
+    { "Overview" = "entity-types/index.md" },
+    { "dns" = "entity-types/dns.md" },
+    { "docker" = "entity-types/docker.md" },
+    { "gamedig" = "entity-types/gamedig.md" },
+    { "globalping" = "entity-types/globalping.md" },
+    { "group" = "entity-types/group.md" },
+    { "grpc-keyword" = "entity-types/grpc-keyword.md" },
+    { "http" = "entity-types/http.md" },
+    { "json-query" = "entity-types/json-query.md" },
+    { "kafka-producer" = "entity-types/kafka-producer.md" },
+    { "keyword" = "entity-types/keyword.md" },
+    { "mongodb" = "entity-types/mongodb.md" },
+    { "mqtt" = "entity-types/mqtt.md" },
+    { "mysql" = "entity-types/mysql.md" },
+    { "ping" = "entity-types/ping.md" },
+    { "port" = "entity-types/port.md" },
+    { "postgres" = "entity-types/postgres.md" },
+    { "push" = "entity-types/push.md" },
+    { "radius" = "entity-types/radius.md" },
+    { "real-browser" = "entity-types/real-browser.md" },
+    { "redis" = "entity-types/redis.md" },
+    { "steam" = "entity-types/steam.md" },
+    { "sqlserver" = "entity-types/sqlserver.md" },
+    { "tailscale-ping" = "entity-types/tailscale-ping.md" },
+    { "smtp" = "entity-types/smtp.md" },
+    { "snmp" = "entity-types/snmp.md" },
+    { "rabbitmq" = "entity-types/rabbitmq.md" },
+  ] },
+  { "Kuma CLI" = "kuma-cli.md" },
+  { "Kuma Client" = "kuma-client.md" },
 ]
 
 [project.theme]
@@ -83,12 +83,16 @@ content_code_copy = true
 search_highlight = true
 
 [project.extra]
+autokuma_latest_release = "2.0.0"
 social = [
-  {icon = "fontawesome/brands/github", link = "https://github.com/BigBoot/AutoKuma"},
-  {icon = "fontawesome/brands/docker", link = "https://ghcr.io/bigboot/autokuma"},
+  { icon = "fontawesome/brands/github", link = "https://github.com/BigBoot/AutoKuma" },
+  { icon = "fontawesome/brands/docker", link = "https://ghcr.io/bigboot/autokuma" },
 ]
 
 [project.extra.version]
 provider = "mike"
 alias = true
 default = ["latest", "stable"]
+
+[project.plugins.macros]
+render_by_default = false

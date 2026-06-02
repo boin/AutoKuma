@@ -52,6 +52,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            sed -i "s/^autokuma_latest_release = .*/autokuma_latest_release = \"$VERSION\"/" zensical.toml
             mike deploy --push --update-aliases --remote docs --config-file zensical.toml "$VERSION" latest stable
             mike set-default --push --remote docs latest
           else
