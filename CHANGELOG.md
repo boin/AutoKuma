@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Docker container/service listing failures no longer abort the entire sync — a warning is logged and the sync continues, see #116
 - Snippet argument parse errors now include the snippet name and container/service name to help identify the offending label, see #128
+- Switch Docker containers to distroless base image to minimize attack surface, fixes #183
 
 ### Fixed
 - Fix type-specific default settings (e.g. `group.notification_name_list`) not overriding wildcard defaults (e.g. `*.notification_name_list`), see #175
