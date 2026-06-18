@@ -209,6 +209,12 @@ pub struct FilesConfig {
     /// Whether the files source should follow symlinks or not.
     #[serde_inline_default(false)]
     pub follow_symlinks: bool,
+
+    /// Whether to preprocess static monitor files as Tera templates before parsing.
+    /// When enabled, Tera expressions (e.g. `{{ get_env(name="MY_SECRET") }}`) are
+    /// evaluated in the file content before JSON/TOML parsing.
+    #[serde_inline_default(false)]
+    pub preprocess: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

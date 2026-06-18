@@ -3,6 +3,7 @@ use crate::{
     entity::{get_entity_from_value, Entity},
     error::{Error, Result},
     sources::source::Source,
+    util::fill_templates,
 };
 use async_trait::async_trait;
 use itertools::Itertools;
@@ -28,11 +29,23 @@ async fn get_entities_from_file<P1: AsRef<Path>, P2: AsRef<Path>>(
             .await
             .map_err(|e| Error::IO(e.to_string()))?;
 
+        let content = if state.config.files.preprocess {
+            fill_templates(state.config.clone(), content, &tera::Context::new())?
+        } else {
+            content
+        };
+
         serde_json::from_str(&content).map_err(|e| Error::DeserializeError(e.to_string()))?
     } else if file.extension().is_some_and(|ext| ext == "toml") {
         let content = tokio::fs::read_to_string(file_path)
             .await
             .map_err(|e| Error::IO(e.to_string()))?;
+
+        let content = if state.config.files.preprocess {
+            fill_templates(state.config.clone(), content, &tera::Context::new())?
+        } else {
+            content
+        };
 
         toml::from_str(&content).map_err(|e| Error::DeserializeError(e.to_string()))?
     } else {

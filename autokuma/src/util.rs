@@ -6,7 +6,6 @@ use serde_json::json;
 use std::error::Error as StdError;
 use std::{collections::BTreeMap, sync::Arc};
 use tera::Tera;
-
 pub fn print_error_chain(error: &dyn StdError) -> String {
     let mut result = "\n".to_owned();
     let mut current_error = Some(error);
@@ -137,6 +136,92 @@ impl tera::Function for GetEnvFunction {
     }
 }
 
+struct JsonEscapeFilter;
+
+impl tera::Filter for JsonEscapeFilter {
+    fn filter(
+        &self,
+        value: &tera::Value,
+        _: &std::collections::HashMap<String, tera::Value>,
+    ) -> tera::Result<tera::Value> {
+        let Some(s) = value.as_str() else {
+            return Ok(value.clone());
+        };
+        let json = serde_json::to_string(s).map_err(|e| tera::Error::msg(e.to_string()))?;
+        Ok(tera::Value::String(json[1..json.len() - 1].to_owned()))
+    }
+}
+
+struct JsonUnescapeFilter;
+
+impl tera::Filter for JsonUnescapeFilter {
+    fn filter(
+        &self,
+        value: &tera::Value,
+        _: &std::collections::HashMap<String, tera::Value>,
+    ) -> tera::Result<tera::Value> {
+        let Some(s) = value.as_str() else {
+            return Ok(value.clone());
+        };
+        let wrapped = format!("\"{}\"", s);
+        let unescaped: String =
+            serde_json::from_str(&wrapped).map_err(|e| tera::Error::msg(e.to_string()))?;
+        Ok(tera::Value::String(unescaped))
+    }
+}
+
+struct TomlEscapeFilter;
+
+impl tera::Filter for TomlEscapeFilter {
+    fn filter(
+        &self,
+        value: &tera::Value,
+        _: &std::collections::HashMap<String, tera::Value>,
+    ) -> tera::Result<tera::Value> {
+        let Some(s) = value.as_str() else {
+            return Ok(value.clone());
+        };
+        let mut result = String::with_capacity(s.len());
+        for c in s.chars() {
+            match c {
+                '\u{0008}' => result.push_str(r"\b"),
+                '\t' => result.push_str(r"\t"),
+                '\n' => result.push_str(r"\n"),
+                '\u{000C}' => result.push_str(r"\f"),
+                '\r' => result.push_str(r"\r"),
+                '"' => result.push_str("\\\""),
+                '\\' => result.push_str(r"\\"),
+                c if (c as u32) < 0x20 => result.push_str(&format!("\\u{:04X}", c as u32)),
+                c => result.push(c),
+            }
+        }
+        Ok(tera::Value::String(result))
+    }
+}
+
+struct TomlUnescapeFilter;
+
+impl tera::Filter for TomlUnescapeFilter {
+    fn filter(
+        &self,
+        value: &tera::Value,
+        _: &std::collections::HashMap<String, tera::Value>,
+    ) -> tera::Result<tera::Value> {
+        let Some(s) = value.as_str() else {
+            return Ok(value.clone());
+        };
+        let table_str = format!("v = \"{}\"", s);
+        let table: toml::Table =
+            toml::from_str(&table_str).map_err(|e| tera::Error::msg(e.to_string()))?;
+        let result = table
+            .get("v")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| tera::Error::msg("toml_unescape: failed to extract value"))?
+            .to_owned();
+        Ok(tera::Value::String(result))
+    }
+}
+
 pub fn fill_templates(
     config: Arc<Config>,
     template: impl Into<String>,
@@ -149,8 +234,168 @@ pub fn fill_templates(
     };
 
     tera.register_function("get_env", get_env);
+    tera.register_filter("json_escape", JsonEscapeFilter);
+    tera.register_filter("json_unescape", JsonUnescapeFilter);
+    tera.register_filter("toml_escape", TomlEscapeFilter);
+    tera.register_filter("toml_unescape", TomlUnescapeFilter);
 
     tera.add_raw_template(&template, &template)
         .and_then(|_| tera.render(&template, template_values))
         .map_err(|e| Error::LabelParseError(print_error_chain(&e)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    fn test_config() -> Arc<Config> {
+        Arc::new(
+            serde_json::from_value(json!({
+                "kuma": {"url": "http://localhost:3001", "tls": {}},
+                "docker": {},
+                "files": {},
+                "kubernetes": {}
+            }))
+            .unwrap(),
+        )
+    }
+
+    fn render(template: &str, context: tera::Context) -> String {
+        fill_templates(test_config(), template, &context).unwrap()
+    }
+
+    fn ctx(key: &str, value: &str) -> tera::Context {
+        let mut c = tera::Context::new();
+        c.insert(key, value);
+        c
+    }
+
+    #[test]
+    fn json_escape_escapes_double_quotes() {
+        assert_eq!(
+            render("{{ v | json_escape }}", ctx("v", r#"hello "world""#)),
+            r#"hello \"world\""#
+        );
+    }
+
+    #[test]
+    fn json_escape_escapes_newlines() {
+        assert_eq!(
+            render("{{ v | json_escape }}", ctx("v", "line1\nline2")),
+            r#"line1\nline2"#
+        );
+    }
+
+    #[test]
+    fn json_escape_escapes_backslashes() {
+        assert_eq!(
+            render("{{ v | json_escape }}", ctx("v", r#"back\slash"#)),
+            r#"back\\slash"#
+        );
+    }
+
+    #[test]
+    fn json_unescape_unescapes_double_quotes() {
+        assert_eq!(
+            render("{{ v | json_unescape }}", ctx("v", r#"hello \"world\""#)),
+            r#"hello "world""#
+        );
+    }
+
+    #[test]
+    fn json_unescape_unescapes_newlines() {
+        assert_eq!(
+            render("{{ v | json_unescape }}", ctx("v", r#"line1\nline2"#)),
+            "line1\nline2"
+        );
+    }
+
+    #[test]
+    fn json_escape_unescape_round_trip() {
+        let raw = "password: \"p@ss/w0rd\"\nwith newline";
+        let result = render(
+            "{{ v | json_escape | json_unescape }}",
+            ctx("v", raw),
+        );
+        assert_eq!(result, raw);
+    }
+
+    #[test]
+    fn toml_escape_escapes_double_quotes() {
+        assert_eq!(
+            render("{{ v | toml_escape }}", ctx("v", r#"hello "world""#)),
+            r#"hello \"world\""#
+        );
+    }
+
+    #[test]
+    fn toml_escape_escapes_newlines() {
+        assert_eq!(
+            render("{{ v | toml_escape }}", ctx("v", "line1\nline2")),
+            r#"line1\nline2"#
+        );
+    }
+
+    #[test]
+    fn toml_escape_escapes_backslashes() {
+        assert_eq!(
+            render("{{ v | toml_escape }}", ctx("v", r#"back\slash"#)),
+            r#"back\\slash"#
+        );
+    }
+
+    #[test]
+    fn toml_unescape_unescapes_double_quotes() {
+        assert_eq!(
+            render("{{ v | toml_unescape }}", ctx("v", r#"hello \"world\""#)),
+            r#"hello "world""#
+        );
+    }
+
+    #[test]
+    fn toml_unescape_unescapes_newlines() {
+        assert_eq!(
+            render("{{ v | toml_unescape }}", ctx("v", r#"line1\nline2"#)),
+            "line1\nline2"
+        );
+    }
+
+    #[test]
+    fn toml_escape_unescape_round_trip() {
+        let raw = "password: \"p@ss/w0rd\"\nwith newline";
+        let result = render(
+            "{{ v | toml_escape | toml_unescape }}",
+            ctx("v", raw),
+        );
+        assert_eq!(result, raw);
+    }
+
+    #[test]
+    fn json_escape_passes_through_non_string() {
+        let mut c = tera::Context::new();
+        c.insert("v", &42);
+        assert_eq!(render("{{ v | json_escape }}", c), "42");
+    }
+
+    #[test]
+    fn json_unescape_passes_through_non_string() {
+        let mut c = tera::Context::new();
+        c.insert("v", &true);
+        assert_eq!(render("{{ v | json_unescape }}", c), "true");
+    }
+
+    #[test]
+    fn toml_escape_passes_through_non_string() {
+        let mut c = tera::Context::new();
+        c.insert("v", &3.14f64);
+        assert_eq!(render("{{ v | toml_escape }}", c), "3.14");
+    }
+
+    #[test]
+    fn toml_unescape_passes_through_non_string() {
+        let mut c = tera::Context::new();
+        c.insert("v", &false);
+        assert_eq!(render("{{ v | toml_unescape }}", c), "false");
+    }
 }
