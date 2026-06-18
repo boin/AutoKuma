@@ -70,6 +70,18 @@ pub enum Theme {
     Dark,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum AnalyticsType {
+    #[serde(rename = "google")]
+    Google,
+    #[serde(rename = "umami")]
+    Umami,
+    #[serde(rename = "plausible")]
+    Plausible,
+    #[serde(rename = "matomo")]
+    Matomo,
+}
+
 #[serde_inline_default]
 #[skip_serializing_none]
 #[serde_as]
@@ -119,8 +131,15 @@ pub struct StatusPage {
     #[serde_as(as = "Option<DeserializeBoolLenient>")]
     pub show_powered_by: Option<bool>,
 
-    #[serde(rename = "googleAnalyticsId")]
-    pub google_analytics_id: Option<String>,
+    #[serde(rename = "analyticsType")]
+    #[serialize_always]
+    pub analytics_type: Option<AnalyticsType>,
+
+    #[serde(rename = "analyticsId")]
+    pub analytics_id: Option<String>,
+
+    #[serde(rename = "analyticsScriptUrl")]
+    pub analytics_script_url: Option<String>,
 
     #[serde(rename = "showCertificateExpiry")]
     #[serde_as(as = "Option<DeserializeBoolLenient>")]
