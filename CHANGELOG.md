@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.1.0-rc.2] - 2026-06-18
 ### Added
 - Add `/health` and `/metrics` (Prometheus-compatible) HTTP endpoints, with a `HEALTHCHECK` in the Dockerfile, see #164. Listens on port 8090 by default (configurable via `healthcheck_port`, set to `null` to disable)
 - Add `files.preprocess` config option (default `false`) to preprocess static monitor files as Tera templates before parsing, allowing use of `get_env` and other Tera functions inside JSON/TOML monitor files. The `json_escape`/`json_unescape` and `toml_escape`/`toml_unescape` filters are provided for safe value embedding, closes #187
