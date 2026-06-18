@@ -365,6 +365,8 @@ pub enum Maintenance {
     Manual {
         #[serde(flatten)]
         common: MaintenanceCommon,
+        #[serde(flatten)]
+        schedule: MaintenanceSchedule,
     },
 
     #[serde(rename = "single")]
@@ -419,7 +421,7 @@ pub enum Maintenance {
 impl Maintenance {
     pub fn common(&self) -> &MaintenanceCommon {
         match self {
-            Maintenance::Manual { common } => common,
+            Maintenance::Manual { common, .. } => common,
             Maintenance::Single { common, .. } => common,
             Maintenance::Cron { common, .. } => common,
             Maintenance::RecurringInterval { common, .. } => common,
@@ -429,7 +431,7 @@ impl Maintenance {
     }
     pub fn common_mut(&mut self) -> &mut MaintenanceCommon {
         match self {
-            Maintenance::Manual { common } => common,
+            Maintenance::Manual { common, .. } => common,
             Maintenance::Single { common, .. } => common,
             Maintenance::Cron { common, .. } => common,
             Maintenance::RecurringInterval { common, .. } => common,
